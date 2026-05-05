@@ -2,20 +2,20 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Menu, X } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 
 const NAV_ITEMS = [
   { label: '首页', href: '/' },
+  { label: '分类', href: '/category' },
   { label: '电影', href: '/movie' },
-  { label: '剧集', href: '/drama' },
+  { label: '电视剧', href: '/drama' },
   { label: '综艺', href: '/variety' },
   { label: '动漫', href: '/anime' },
   { label: '短剧', href: '/short' },
 ];
 
 export default function Header() {
+  const pathname = usePathname();
   const [keyword, setKeyword] = useState('');
   const [darkMode, setDarkMode] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -32,13 +32,8 @@ export default function Header() {
   const toggleDark = () => {
     const next = !darkMode;
     setDarkMode(next);
-    if (next) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
+    document.documentElement.classList.toggle('dark', next);
+    localStorage.setItem('theme', next ? 'dark' : 'light');
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -48,27 +43,46 @@ export default function Header() {
     }
   };
 
-  const closeMenu = () => setMenuOpen(false);
+  const isActive = (href: string) => {
+    if (href === '/') return pathname === '/';
+    return pathname.startsWith(href);
+  };
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full border-b bg-[var(--bg-secondary)] backdrop-blur-md border-[var(--border-color)]">
-        <div className="container flex items-center justify-between h-14 px-4 mx-auto max-w-7xl">
+      <header
+        className="sticky top-0 z-50 w-full border-b backdrop-blur-md"
+        style={{
+          backgroundColor: 'var(--bg-secondary)',
+          borderColor: 'var(--border-color)',
+        }}
+      >
+        <div className="max-w-7xl mx-auto flex items-center justify-between h-14 px-4">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 group shrink-0">
+          <Link href="/" className="flex items-center gap-2 shrink-0">
             <span className="text-2xl">🌲</span>
-            <span className="text-lg font-bold text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors">
+            <span
+              className="text-lg font-bold"
+              style={{ color: 'var(--accent)' }}
+            >
               影视森林
             </span>
           </Link>
 
           {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-4 lg:gap-6">
+          <nav className="hidden md:flex items-center gap-1 lg:gap-2">
             {NAV_ITEMS.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                className={`px-3 py-4 text-sm font-medium border-b-2 transition-colors ${
+                  isActive(item.href)
+                    ? 'nav-active'
+                    : 'border-transparent hover:opacity-80'
+                }`}
+                style={{
+                  color: isActive(item.href) ? 'var(--accent)' : 'var(--text-secondary)',
+                }}
               >
                 {item.label}
               </Link>
@@ -78,48 +92,60 @@ export default function Header() {
           {/* Search + Dark Toggle (desktop) */}
           <div className="hidden md:flex items-center gap-2">
             <form onSubmit={handleSearch} className="flex items-center gap-2">
-              <Input
-                placeholder="搜索影视..."
+              <input
+                type="text"
+                placeholder="搜索影片、演员、导演"
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
-                className="w-40 lg:w-48 bg-[var(--bg-primary)] border-[var(--border-color)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]"
+                className="w-40 lg:w-52 h-9 px-3 rounded-lg text-sm outline-none border transition-colors"
+                style={{
+                  backgroundColor: 'var(--bg-primary)',
+                  borderColor: 'var(--border-color)',
+                  color: 'var(--text-primary)',
+                }}
               />
-              <Button type="submit" size="sm" className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white shrink-0">
+              <button
+                type="submit"
+                className="h-9 px-4 rounded-lg text-white text-sm font-medium transition-colors shrink-0"
+                style={{ backgroundColor: 'var(--accent)' }}
+              >
                 搜索
-              </Button>
+              </button>
             </form>
             <button
               onClick={toggleDark}
-              className="p-2 rounded-lg border border-[var(--border-color)] hover:bg-[var(--bg-primary)] transition-colors text-[var(--text-secondary)] shrink-0"
+              className="w-9 h-9 flex items-center justify-center rounded-lg border transition-colors"
+              style={{
+                borderColor: 'var(--border-color)',
+                color: 'var(--text-secondary)',
+              }}
               title="切换深色模式"
             >
               {darkMode ? '☀️' : '🌙'}
             </button>
           </div>
 
-          {/* Mobile: search + menu toggle */}
+          {/* Mobile: dark toggle + hamburger */}
           <div className="flex md:hidden items-center gap-2">
-            <form onSubmit={handleSearch} className="flex items-center gap-1">
-              <Input
-                placeholder="搜索..."
-                value={keyword}
-                onChange={(e) => setKeyword(e.target.value)}
-                className="w-24 bg-[var(--bg-primary)] border-[var(--border-color)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] text-sm h-8"
-              />
-            </form>
             <button
               onClick={toggleDark}
-              className="p-1.5 rounded-md border border-[var(--border-color)] hover:bg-[var(--bg-primary)] transition-colors text-[var(--text-secondary)] shrink-0"
-              title="切换深色模式"
+              className="w-8 h-8 flex items-center justify-center rounded-md border text-sm"
+              style={{
+                borderColor: 'var(--border-color)',
+                color: 'var(--text-secondary)',
+              }}
             >
-              <span className="text-sm">{darkMode ? '☀️' : '🌙'}</span>
+              {darkMode ? '☀️' : '🌙'}
             </button>
             <button
               onClick={() => setMenuOpen(!menuOpen)}
-              className="p-1.5 rounded-md border border-[var(--border-color)] hover:bg-[var(--bg-primary)] transition-colors text-[var(--text-secondary)] shrink-0"
-              title="菜单"
+              className="w-8 h-8 flex items-center justify-center rounded-md border text-sm"
+              style={{
+                borderColor: 'var(--border-color)',
+                color: 'var(--text-secondary)',
+              }}
             >
-              {menuOpen ? <X size={18} /> : <Menu size={18} />}
+              {menuOpen ? '✕' : '☰'}
             </button>
           </div>
         </div>
@@ -129,32 +155,62 @@ export default function Header() {
       {menuOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50 md:hidden"
-          onClick={closeMenu}
+          onClick={() => setMenuOpen(false)}
         />
       )}
 
       {/* Mobile Menu Drawer */}
       <div
-        className={`
-          fixed top-0 right-0 z-50 h-full w-56 bg-[var(--bg-secondary)] border-l border-[var(--border-color)]
-          transform transition-transform duration-300 ease-in-out
-          md:hidden
-          ${menuOpen ? 'translate-x-0' : 'translate-x-full'}
-        `}
+        className={`fixed top-0 right-0 z-50 h-full w-56 border-l transform transition-transform duration-300 ease-in-out md:hidden ${
+          menuOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}
+        style={{
+          backgroundColor: 'var(--bg-secondary)',
+          borderColor: 'var(--border-color)',
+        }}
       >
         <div className="flex flex-col p-4 gap-1">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-base font-bold text-[var(--text-primary)]">导航菜单</span>
-            <button onClick={closeMenu} className="p-1 rounded-md hover:bg-[var(--bg-primary)]">
-              <X size={20} className="text-[var(--text-secondary)]" />
+            <span className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>
+              导航菜单
+            </span>
+            <button
+              onClick={() => setMenuOpen(false)}
+              className="w-8 h-8 flex items-center justify-center rounded-md"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              ✕
             </button>
           </div>
+
+          {/* Mobile search */}
+          <form onSubmit={(e) => { handleSearch(e); setMenuOpen(false); }} className="mb-3">
+            <input
+              type="text"
+              placeholder="搜索影片..."
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              className="w-full h-9 px-3 rounded-lg text-sm outline-none border"
+              style={{
+                backgroundColor: 'var(--bg-primary)',
+                borderColor: 'var(--border-color)',
+                color: 'var(--text-primary)',
+              }}
+            />
+          </form>
+
           {NAV_ITEMS.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              onClick={closeMenu}
-              className="px-3 py-2.5 rounded-lg text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-primary)] transition-colors"
+              onClick={() => setMenuOpen(false)}
+              className={`px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                isActive(item.href) ? '' : ''
+              }`}
+              style={{
+                color: isActive(item.href) ? 'var(--accent)' : 'var(--text-secondary)',
+                backgroundColor: isActive(item.href) ? 'var(--accent-light)' : 'transparent',
+              }}
             >
               {item.label}
             </Link>

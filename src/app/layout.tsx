@@ -1,10 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import { Noto_Sans_SC } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-
-const notoSans = Noto_Sans_SC({ subsets: ["latin"] });
+import MobileBottomNav from "@/components/MobileBottomNav";
 
 export const metadata: Metadata = {
   title: "影视森林",
@@ -12,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  width: 'device-width',
+  width: "device-width",
   initialScale: 1,
   maximumScale: 1,
 };
@@ -23,13 +21,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN" className="h-full">
-      <body className={`${notoSans.className} min-h-full flex flex-col bg-[var(--bg-primary)] text-[var(--text-primary)]`}>
+    <html lang="zh-CN" suppressHydrationWarning>
+      <body
+        className="min-h-screen flex flex-col"
+        style={{
+          backgroundColor: "var(--bg-primary)",
+          color: "var(--text-primary)",
+        }}
+      >
         <Header />
-        <main className="flex-1 container px-4 mx-auto max-w-7xl py-6">
+        <main className="flex-1 w-full max-w-7xl mx-auto px-4 py-6 pb-safe-bottom">
           {children}
         </main>
         <Footer />
+        <MobileBottomNav />
       </body>
     </html>
   );
