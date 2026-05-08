@@ -66,7 +66,10 @@ export interface UserListItem {
   title: string;
   cover: string;
   year?: number;
-  rating?: number;
+  rating?: number;       // 豆瓣评分
+  userRating?: number;   // 用户评分
+  note?: string;         // 用户备注
+  addedAt?: string;
 }
 
 // ---- Auth API ----
@@ -95,7 +98,7 @@ export const listApi = {
   getItems: (id: number, params?: { page?: number; size?: number }) =>
     authClient.get(`/api/user/lists/${id}/items`, { params }),
 
-  addItem: (id: number, data: { movieId: number; contentType: string }) =>
+  addItem: (id: number, data: { movieId: number; contentType: string; rating?: number; note?: string }) =>
     authClient.post(`/api/user/lists/${id}/items`, data),
 
   removeItem: (id: number, data: { movieId: number; contentType: string }) =>

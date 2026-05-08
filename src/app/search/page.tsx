@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { searchApi } from '@/lib/api';
 import Pagination from '@/components/Pagination';
-import { parseRegion, cleanTitle as cleanTitleUtil } from '@/lib/utils';
+import { parseRegion, parseGenre, cleanTitle as cleanTitleUtil } from '@/lib/utils';
 import { useUserStore } from '@/stores/userStore';
 import dynamic from 'next/dynamic';
 
@@ -19,11 +19,13 @@ interface SearchResult {
   cover: string;
   year: number | null;
   rating: number | null;
+  ratingImdb: number | null;
+  ratingRT: number | null;
   summary: string | null;
-  director?: string[];
-  actor?: string[];
-  genre?: string[];
-  region?: string | string[];
+  director?: string;
+  actor?: string;
+  genre?: string;
+  region?: string;
   duration?: number;
   totalEpisode?: number;
 }
@@ -38,9 +40,11 @@ const TYPE_FILTERS = [
 ];
 
 const SORT_OPTIONS = [
-  { label: '默认', value: 'default' },
-  { label: '评分', value: 'rating' },
+  { label: '最新更新', value: 'latest' },
   { label: '上映时间', value: 'year' },
+  { label: '豆瓣评分', value: 'douban' },
+  { label: 'IMDB评分', value: 'imdb' },
+  { label: '烂番茄评分', value: 'rt' },
 ];
 
 const typeLabel: Record<string, string> = {
@@ -51,8 +55,15 @@ const typeHref: Record<string, string> = {
   movie: '/movie', drama: '/drama', variety: '/variety', anime: '/anime', short_drama: '/short',
 };
 
-function parseRegionStr(region: string | string[] | undefined): string {
-  return parseRegion(region).join('/');
+function parseJsonArr(val: string | string[] | undefined): string[] {
+  if (!val) return [];
+  if (Array.isArray(val)) return val;
+  try {
+    const parsed = JSON.parse(val);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
 }
 
 function SearchContent() {
@@ -66,7 +77,7 @@ function SearchContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [typeFilter, setTypeFilter] = useState('');
-  const [sortBy, setSortBy] = useState('default');
+  const [sortBy, setSortBy] = useState('latest');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [collectMovieId, setCollectMovieId] = useState<number | null>(null);
   const [collectType, setCollectType] = useState('');
@@ -111,11 +122,15 @@ function SearchContent() {
   const filteredResults = useMemo(() => {
     let filtered = typeFilter ? results.filter(r => r.type === typeFilter) : [...results];
 
-    if (sortBy !== 'default') {
+    if (sortBy !== 'latest') {
       filtered.sort((a, b) => {
         let cmp = 0;
-        if (sortBy === 'rating') {
+        if (sortBy === 'douban') {
           cmp = (a.rating ?? 0) - (b.rating ?? 0);
+        } else if (sortBy === 'imdb') {
+          cmp = (a.ratingImdb ?? 0) - (b.ratingImdb ?? 0);
+        } else if (sortBy === 'rt') {
+          cmp = (a.ratingRT ?? 0) - (b.ratingRT ?? 0);
         } else if (sortBy === 'year') {
           cmp = (a.year ?? 0) - (b.year ?? 0);
         }
@@ -172,7 +187,7 @@ function SearchContent() {
             </select>
             <button
               onClick={() => setSortDir(d => d === 'desc' ? 'asc' : 'desc')}
-              className="h-8 px-2.5 flex items-center gap-1 rounded-lg text-xs font-medium border cursor-pointer transition-colors"
+              className="h-8 w-8 flex items-center justify-center rounded-lg border cursor-pointer transition-colors"
               style={{
                 backgroundColor: 'var(--bg-card)',
                 borderColor: 'var(--border-color)',
@@ -180,16 +195,15 @@ function SearchContent() {
                 WebkitTapHighlightColor: 'transparent',
                 touchAction: 'manipulation',
               }}
-              title={sortDir === 'desc' ? '降序 → 点击切换升序' : '升序 → 点击切换降序'}
+              title={sortDir === 'desc' ? '降序' : '升序'}
             >
-              <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 {sortDir === 'desc' ? (
-                  <><path d="M4 6l4 4 4-4" /></>
+                  <><line x1="12" y1="5" x2="12" y2="19" /><polyline points="19 12 12 19 5 12" /></>
                 ) : (
-                  <><path d="M4 10l4-4 4 4" /></>
+                  <><line x1="12" y1="19" x2="12" y2="5" /><polyline points="5 12 12 5 19 12" /></>
                 )}
               </svg>
-              <span>{sortDir === 'desc' ? '降序' : '升序'}</span>
             </button>
           </div>
         </div>
@@ -197,15 +211,19 @@ function SearchContent() {
 
       {/* Results */}
       {loading ? (
-        <div className="space-y-3">{[1,2,3,4,5].map(i => <div key={i} className="h-32 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--bg-card)' }} />)}</div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">{[1,2,3,4].map(i => <div key={i} className="h-48 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--bg-card)' }} />)}</div>
       ) : searched && filteredResults.length === 0 ? (
         <div className="text-center py-16"><p className="text-lg mb-2" style={{ color: 'var(--text-secondary)' }}>没有找到「{initialQuery || keyword}」的相关结果</p><p className="text-sm" style={{ color: 'var(--text-muted)' }}>试试其他关键词？</p></div>
       ) : filteredResults.length > 0 ? (
         <>
-          <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             {filteredResults.map(item => {
               const href = `${typeHref[item.type] || '/movie'}/${item.id}`;
-              const regionStr = parseRegionStr(item.region);
+              const regionArr = parseJsonArr(item.region);
+              const genreArr = parseJsonArr(item.genre);
+              const directorArr = parseJsonArr(item.director);
+              const actorArr = parseJsonArr(item.actor);
+              const regionStr = regionArr.join('/');
               const durationOrEp = item.type === 'movie' ? (item.duration ? `${item.duration}分钟` : '') : (item.totalEpisode ? `${item.totalEpisode}集` : '');
 
               return (
@@ -235,17 +253,33 @@ function SearchContent() {
                   <div className="flex-1 min-w-0 flex flex-col gap-1">
                     <div className="flex items-center gap-2">
                       <h3 className="font-bold text-sm md:text-base line-clamp-1" style={{ color: 'var(--text-primary)' }}>{cleanTitleUtil(item.title)}</h3>
-                      {item.rating != null && <span className="text-xs font-bold shrink-0 px-1.5 py-0.5 rounded" style={{ backgroundColor: 'var(--accent)', color: '#fff' }}>{item.rating.toFixed(1)}</span>}
                     </div>
+                    {/* Ratings */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {item.rating != null && <span className="text-[10px] md:text-xs font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor: '#fef2f2', color: '#dc2626' }}>豆瓣 {item.rating.toFixed(1)}</span>}
+                      {item.ratingImdb != null && <span className="text-[10px] md:text-xs font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor: '#fefce8', color: '#ca8a04' }}>IMDB {item.ratingImdb.toFixed(1)}</span>}
+                      {item.ratingRT != null && <span className="text-[10px] md:text-xs font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor: '#f0fdf4', color: '#16a34a' }}>烂番茄 {item.ratingRT}%</span>}
+                    </div>
+                    {/* Meta row */}
                     <div className="flex items-center gap-2 flex-wrap text-xs" style={{ color: 'var(--text-muted)' }}>
                       <span className="px-1.5 py-0.5 rounded text-[10px] md:text-xs" style={{ border: '1px solid var(--accent)', color: 'var(--accent)' }}>{typeLabel[item.type]}</span>
                       {item.year && <span>{item.year}</span>}
                       {regionStr && <span>{regionStr}</span>}
                       {durationOrEp && <span>{durationOrEp}</span>}
                     </div>
-                    {item.genre && item.genre.length > 0 && <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{item.genre.join(' / ')}</p>}
-                    {item.director && item.director.length > 0 && <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>导演: {item.director.join(' / ')}</p>}
-                    {item.actor && item.actor.length > 0 && <p className="text-xs truncate hidden md:block" style={{ color: 'var(--text-muted)' }}>主演: {item.actor.slice(0,4).join(' / ')}</p>}
+                    {/* Genre tags */}
+                    {genreArr.length > 0 && (
+                      <div className="flex items-center gap-1 flex-wrap">
+                        {genreArr.slice(0, 4).map((g, i) => (
+                          <span key={i} className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}>{g}</span>
+                        ))}
+                      </div>
+                    )}
+                    {/* Director */}
+                    {directorArr.length > 0 && <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>导演: {directorArr.join(' / ')}</p>}
+                    {/* Actor - PC only */}
+                    {actorArr.length > 0 && <p className="text-xs truncate hidden md:block" style={{ color: 'var(--text-muted)' }}>主演: {actorArr.slice(0,4).join(' / ')}</p>}
+                    {/* Summary - PC only */}
                     {item.summary && <p className="text-xs line-clamp-2 mt-auto hidden md:block" style={{ color: 'var(--text-muted)' }}>{item.summary}</p>}
                   </div>
                 </Link>
