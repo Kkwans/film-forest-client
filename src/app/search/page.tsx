@@ -202,14 +202,14 @@ function SearchContent() {
         <div className="text-center py-16"><p className="text-lg mb-2" style={{ color: 'var(--text-secondary)' }}>没有找到「{initialQuery || keyword}」的相关结果</p><p className="text-sm" style={{ color: 'var(--text-muted)' }}>试试其他关键词？</p></div>
       ) : filteredResults.length > 0 ? (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="flex flex-col gap-3">
             {filteredResults.map(item => {
               const href = `${typeHref[item.type] || '/movie'}/${item.id}`;
               const regionStr = parseRegionStr(item.region);
               const durationOrEp = item.type === 'movie' ? (item.duration ? `${item.duration}分钟` : '') : (item.totalEpisode ? `${item.totalEpisode}集` : '');
 
               return (
-                <Link key={`${item.type}-${item.id}`} href={href} prefetch={true} className="flex gap-3 p-3 rounded-xl border transition-colors hover:shadow-md relative" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)', WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}>
+                <Link key={`${item.type}-${item.id}`} href={href} prefetch={true} className="flex gap-3 md:gap-4 p-3 md:p-4 rounded-xl border transition-colors hover:shadow-md relative" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)', WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}>
                   {/* Collect button */}
                   <button
                     onClick={(e) => {
@@ -219,34 +219,34 @@ function SearchContent() {
                       setCollectType(item.type === 'short_drama' ? 'short_drama' : item.type);
                       setCollectTitle(item.title);
                     }}
-                    className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full flex items-center justify-center backdrop-blur-sm transition-colors"
+                    className="absolute top-2 right-2 z-10 w-6 h-6 md:w-7 md:h-7 rounded-full flex items-center justify-center backdrop-blur-sm transition-colors"
                     style={{ backgroundColor: 'rgba(0,0,0,0.4)', color: '#fff' }}
                     title="收藏"
                   >
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg className="w-3.5 h-3.5 md:w-4 md:h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                     </svg>
                   </button>
                   {/* Poster */}
-                  <div className="shrink-0 w-[90px] md:w-[100px] aspect-[2/3] rounded-lg overflow-hidden">
-                    <img src={item.cover || `https://picsum.photos/seed/${item.id}/100/150`} alt={item.title} className="w-full h-full object-cover" loading="lazy" />
+                  <div className="shrink-0 w-[80px] md:w-[110px] aspect-[2/3] rounded-lg overflow-hidden">
+                    <img src={item.cover || `https://picsum.photos/seed/${item.id}/110/165`} alt={item.title} className="w-full h-full object-cover" loading="lazy" />
                   </div>
                   {/* Info */}
                   <div className="flex-1 min-w-0 flex flex-col gap-1">
                     <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-sm md:text-base truncate" style={{ color: 'var(--text-primary)' }}>{cleanTitleUtil(item.title)}</h3>
-                      {item.rating != null && <span className="text-xs font-semibold shrink-0" style={{ color: 'var(--accent)' }}>{item.rating.toFixed(1)}</span>}
+                      <h3 className="font-bold text-sm md:text-base line-clamp-1" style={{ color: 'var(--text-primary)' }}>{cleanTitleUtil(item.title)}</h3>
+                      {item.rating != null && <span className="text-xs font-bold shrink-0 px-1.5 py-0.5 rounded" style={{ backgroundColor: 'var(--accent)', color: '#fff' }}>{item.rating.toFixed(1)}</span>}
                     </div>
                     <div className="flex items-center gap-2 flex-wrap text-xs" style={{ color: 'var(--text-muted)' }}>
+                      <span className="px-1.5 py-0.5 rounded text-[10px] md:text-xs" style={{ border: '1px solid var(--accent)', color: 'var(--accent)' }}>{typeLabel[item.type]}</span>
                       {item.year && <span>{item.year}</span>}
-                      {regionStr && <span>· {regionStr}</span>}
-                      {durationOrEp && <span>· {durationOrEp}</span>}
-                      <span className="px-1.5 py-0.5 rounded text-xs" style={{ border: '1px solid var(--accent)', color: 'var(--accent)' }}>{typeLabel[item.type]}</span>
+                      {regionStr && <span>{regionStr}</span>}
+                      {durationOrEp && <span>{durationOrEp}</span>}
                     </div>
-                    {item.genre && item.genre.length > 0 && <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{item.genre.slice(0,3).join('/')}</p>}
-                    {item.director && item.director.length > 0 && <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>导演: {item.director[0]}</p>}
-                    {item.actor && item.actor.length > 0 && <p className="text-xs truncate hidden md:block" style={{ color: 'var(--text-muted)' }}>主演: {item.actor.slice(0,3).join(' ')}</p>}
-                    {item.summary && <p className="text-xs line-clamp-2 mt-auto" style={{ color: 'var(--text-secondary)' }}>{item.summary}</p>}
+                    {item.genre && item.genre.length > 0 && <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{item.genre.join(' / ')}</p>}
+                    {item.director && item.director.length > 0 && <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>导演: {item.director.join(' / ')}</p>}
+                    {item.actor && item.actor.length > 0 && <p className="text-xs truncate hidden md:block" style={{ color: 'var(--text-muted)' }}>主演: {item.actor.slice(0,4).join(' / ')}</p>}
+                    {item.summary && <p className="text-xs line-clamp-2 mt-auto hidden md:block" style={{ color: 'var(--text-muted)' }}>{item.summary}</p>}
                   </div>
                 </Link>
               );

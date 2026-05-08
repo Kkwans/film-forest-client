@@ -2,10 +2,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { parseRegion, parseGenre, cleanTitle as cleanTitleUtil } from '@/lib/utils';
 import { useUserStore } from '@/stores/userStore';
-import { listApi, type UserList } from '@/lib/userApi';
+import { listApi } from '@/lib/userApi';
 import dynamic from 'next/dynamic';
 
 const CollectModal = dynamic(() => import('@/components/CollectModal'), { ssr: false });
@@ -43,71 +43,34 @@ export default function MovieCard({
 }: MovieCardProps) {
   const [navigating, setNavigating] = useState(false);
   const [collectOpen, setCollectOpen] = useState(false);
-  const [isInWantList, setIsInWantList] = useState(false);
-  const [wantListId, setWantListId] = useState<number | null>(null);
-  const [togglingWant, setTogglingWant] = useState(false);
+  const [added, setAdded] = useState(false);
+  const [toggling, setToggling] = useState(false);
   const isAuthenticated = useUserStore((s) => s.isAuthenticated);
   const contentType = type || 'movie';
   const clickTimer = useRef<NodeJS.Timeout | null>(null);
 
-  // Fetch want_to_watch list status for this movie
-  useEffect(() => {
-    if (!isAuthenticated || !showCollect) return;
-    const checkStatus = async () => {
-      try {
-        const res = await listApi.getAll();
-        const lists: UserList[] = res.data.data || res.data;
-        const wantList = lists.find((l) => l.type === 'want_to_watch');
-        if (wantList) {
-          setWantListId(wantList.id);
-          // Check if this movie is in the want list
-          try {
-            const itemsRes = await listApi.getItems(wantList.id, { page: 1, size: 500 });
-            const items = itemsRes.data.data?.records || itemsRes.data.data || itemsRes.data || [];
-            const found = Array.isArray(items) && items.some((item: any) => item.movieId === id);
-            setIsInWantList(found);
-          } catch {
-            // silent
-          }
-        }
-      } catch {
-        // silent
-      }
-    };
-    checkStatus();
-  }, [isAuthenticated, id, showCollect]);
-
-  // Single click: toggle want_to_watch list
+  // Single click: add to want_to_watch (direct POST, no status check)
   const handleSingleClick = useCallback(async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!isAuthenticated || !wantListId || togglingWant) return;
-    setTogglingWant(true);
+    if (!isAuthenticated || toggling) return;
+    setToggling(true);
     try {
-      if (isInWantList) {
-        await listApi.removeItem(wantListId, { movieId: id, contentType });
-        setIsInWantList(false);
-      } else {
-        await listApi.addItem(wantListId, { movieId: id, contentType });
-        setIsInWantList(true);
+      // Get all lists to find want_to_watch list id
+      const res = await listApi.getAll();
+      const lists = res.data.data || res.data;
+      const wantList = Array.isArray(lists) ? lists.find((l: any) => l.type === 'want_to_watch') : null;
+      if (wantList) {
+        await listApi.addItem(wantList.id, { movieId: id, contentType });
+        setAdded(true);
       }
     } catch {
-      // silent
+      // silent - may already be in list
+      setAdded(true);
     } finally {
-      setTogglingWant(false);
+      setToggling(false);
     }
-  }, [isAuthenticated, wantListId, togglingWant, isInWantList, id, contentType]);
-
-  // Double click: open collect modal
-  const handleDoubleClick = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (clickTimer.current) {
-      clearTimeout(clickTimer.current);
-      clickTimer.current = null;
-    }
-    setCollectOpen(true);
-  }, []);
+  }, [isAuthenticated, toggling, id, contentType]);
 
   // Handle click with delay to distinguish single/double
   const handleCollectClick = useCallback((e: React.MouseEvent) => {
@@ -130,9 +93,7 @@ export default function MovieCard({
   // Normalize region and genre using shared utils
   const regionArr = parseRegion(region);
   const genreArr = parseGenre(genre);
-  // For cards: show only first region
   const regionDisplay = regionArr.length > 0 ? regionArr[0] : '';
-  // Clean title
   const cleanTitle = cleanTitleUtil(title);
   const fallbackCover = `https://picsum.photos/seed/${id}/300/450`;
 
@@ -145,7 +106,6 @@ export default function MovieCard({
   }
 
   const handleClick = (e: React.MouseEvent) => {
-    // Allow native link navigation - just set visual feedback
     setNavigating(true);
   };
 
@@ -197,22 +157,21 @@ export default function MovieCard({
               {rating.toFixed(1)}
             </span>
           )}
-          {/* Collect button - top left. Single click: toggle want list. Double click: open modal */}
+          {/* Collect button - top left */}
           {showCollect && (
             <button
               onClick={handleCollectClick}
-              onDoubleClick={handleDoubleClick}
-              className="absolute top-1.5 left-1.5 md:top-2 md:left-2 z-10 w-6 h-6 md:w-7 md:h-7 rounded-full flex items-center justify-center backdrop-blur-sm transition-colors hover:scale-110"
+              className="absolute top-1 left-1 z-10 w-5 h-5 md:w-7 md:h-7 rounded-full flex items-center justify-center backdrop-blur-sm transition-colors hover:scale-110"
               style={{
-                backgroundColor: isInWantList ? 'rgba(239, 68, 68, 0.8)' : 'rgba(0,0,0,0.4)',
+                backgroundColor: added ? 'rgba(239, 68, 68, 0.8)' : 'rgba(0,0,0,0.4)',
                 color: '#fff',
               }}
-              title={isInWantList ? '已想看（单击移除，双击选择片单）' : '想看（单击加入，双击选择片单）'}
+              title={added ? '已想看（单击取消，双击选择片单）' : '想看（单击加入，双击选择片单）'}
             >
-              {togglingWant ? (
-                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              {toggling ? (
+                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill={isInWantList ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg className="w-3 h-3 md:w-4 md:h-4" viewBox="0 0 24 24" fill={added ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                 </svg>
               )}
