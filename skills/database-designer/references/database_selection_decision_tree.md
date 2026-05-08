@@ -1,4 +1,4 @@
-﻿# Database Selection Decision Tree
+# Database Selection Decision Tree
 
 ## Overview
 

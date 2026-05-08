@@ -1,4 +1,4 @@
-﻿---
+---
 name: docker-essentials
 description: Essential Docker commands and workflows for container management, image operations, and debugging.
 homepage: https://docs.docker.com/

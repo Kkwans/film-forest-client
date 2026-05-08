@@ -1,4 +1,4 @@
-﻿---
+---
 name: java-code-reviewer
 description: |
   Java 代码审查报告生成器。用于审查 Java 代码变更，生成结构化审查报告。

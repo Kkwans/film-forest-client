@@ -1,4 +1,4 @@
-# PLAN -- 影视森林 (film-forest)
+﻿# PLAN -- 影视森林 (film-forest)
 
 ## 任务信息
 - 任务名: 影视森林
@@ -123,4 +123,44 @@
 - 无验证码，无 JS 渲染需求
 
 ## 当前状态
-用户端首页/管理端仪表盘已完成，下一步：完善用户端和管理端页面。
+用户端 UI 重构基本完成（~85%），剩余细节打磨和 bug 修复。
+
+## 最新进展（2026-05-05 更新）
+
+### 用户端 UI 重构
+- ✅ 布局组件: Header（导航+搜索+深色切换）、Footer、MobileBottomNav
+- ✅ 通用组件: MovieCard、Pagination、UI 组件库（badge/button/card/select/skeleton/tabs 等）
+- ✅ 首页: HomeClient.tsx（推荐板块布局）
+- ✅ 电影列表页: MovieListClient.tsx（6列网格、筛选栏、排序、分页）
+- ✅ 电影详情页: MovieDetailClient.tsx（海报+详情+评分+下载资源）
+- ✅ 电视剧/综艺/动漫/短剧: 列表+详情全部完成
+- ✅ 搜索结果页: search/page.tsx（单列列表+类型筛选+排序）
+- ✅ CSS 主题系统: globals.css CSS 变量（深色/浅色模式）
+- ✅ API 代理: next.config.ts rewrites（解决硬编码 Tailscale IP）
+- ✅ 4 张设计图全部分析完成
+- ⚠️ 待完善: 综艺等列表页筛选功能补齐 + 部分细节 + bug 修复
+
+### 其他已完成
+- ✅ CSS 未生效问题已修复（standalone 模式静态文件路径映射）
+- ✅ API 代理修复（client-ui + admin-ui 均通过 Next.js server 转发）
+- ✅ Dockerfile 升级 node:20-alpine
+
+## 阶段规划（更新）
+
+| 阶段 | 内容 | 状态 |
+|------|------|------|
+| 1 | 数据库设计（v2，5主表 + 资源表 + 剧集子表） | ✅ 已完成 |
+| 2 | NAS MySQL 环境（停 mariadbd，启 mysql8，建库） | ✅ 已完成 |
+| 3 | 建表 SQL 导入（9 张表） | ✅ 已完成 |
+| 4 | 七味网站点调研 | ✅ 已完成 |
+| 5 | SpringBoot 后端脚手架 + 基础 CRUD API | ✅ 已完成 |
+| 6 | 后端部署到 NAS（端口 8080） | ✅ 已完成 |
+| 7 | 爬虫核心（七味网对接，列表页 CF 问题待解） | ✅ 已完成 |
+| 8 | 管理端前端（仪表盘/内容管理/爬虫管理） | ✅ 已完成 |
+| 9 | 用户端前端 UI 重构（按设计稿） | 🔧 进行中（~85%） |
+| 10 | 用户端细节打磨 + bug 修复 | ⏳ 待执行 |
+| 11 | CSS/主题修复验证 | ✅ 已完成 |
+| 12 | Git remote 修复 + 代码同步 | ⏳ 待执行 |
+| 13 | CloudFlare 绕过（或换数据源） | ⏳ 待执行 |
+| 14 | Docker Compose 全量部署验证 | ⏳ 待执行 |
+| 15 | 上线发布 | ⏳ 待执行 |

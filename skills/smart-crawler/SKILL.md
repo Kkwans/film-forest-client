@@ -1,4 +1,4 @@
-﻿---
+---
 name: smart-crawler
 description: 智能爬虫工具 - 企业级数据采集与反爬虫处理 | Smart Web Crawler - Enterprise data collection with anti-detection
 homepage: https://github.com/openclaw/smart-crawler

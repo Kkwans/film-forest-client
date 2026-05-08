@@ -1,4 +1,4 @@
-﻿# database-designer reference
+# database-designer reference
 
 ## Database Design Principles
 

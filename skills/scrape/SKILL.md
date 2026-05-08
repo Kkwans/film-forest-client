@@ -1,4 +1,4 @@
-﻿---
+---
 name: Scrape
 description: Legal web scraping with robots.txt compliance, rate limiting, and GDPR/CCPA-aware data handling.
 ---

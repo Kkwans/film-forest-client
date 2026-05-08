@@ -1,4 +1,4 @@
-﻿# Web Layer - Controllers & REST APIs
+# Web Layer - Controllers & REST APIs
 
 ## REST Controller Pattern
 

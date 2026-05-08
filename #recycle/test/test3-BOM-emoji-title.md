@@ -1,3 +1,0 @@
-﻿Test 📋 title
-
-Normal content

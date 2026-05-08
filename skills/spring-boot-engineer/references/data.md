@@ -1,4 +1,4 @@
-﻿# Data Access - Spring Data JPA
+# Data Access - Spring Data JPA
 
 ## JPA Entity Pattern
 

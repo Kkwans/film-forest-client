@@ -36,7 +36,16 @@
   - **项目源码**: `/root/.openclaw/workspace/projects/film-forest/`
   - **GitHub**: Kkwans/film-forest-server（后端）、Kkwans/film-forest-client（前端）
 - **前端**: next build + standalone 模式，NAS 上 node server.js 直接运行（NAS 有 node 18 无 npm）
-- **待推进**: 爬虫核心对接七味网 -> Docker 容器化 -> 管理端
+- **用户端 UI 重构**: 已完成并部署（2026-05-06 更新）
+  - 已完成: 首页/电影列表/电影详情/搜索结果 + 电视剧/综艺/动漫/短剧列表+详情 + 分类页
+  - 筛选功能: encodeURIComponent 修复中文参数编码 bug
+  - 20个用户端问题全部修复（详见 ISSUES-USER-20260506.md）
+  - 修复项: 分页/筛选/详情页/genre解析/地区显示/磁力去重/复制按钮/加载动画/Tab即时反馈等
+- **管理端**: 全部功能已部署（2026-05-06 更新）
+  - 爬虫管理: 启动/停止/编辑/删除/配置弹窗（类型/优先级/定时/批量/间隔/类型筛选）
+  - 资源管理: 可编辑来源列表 + 启用禁用开关 + 七味网 URL 已修正
+  - 浅色模式: CSS 变量 + hardcoded colors 清理
+  - 主题跟随: matchMedia 单一监听器 + 默认深色
 
 ## 暂停项目: 开发面试大师 (interview-master)
 
@@ -54,7 +63,16 @@
   - 所有项目共用此 MySQL 实例，不同项目用不同 database
 - **mariadbd**: 已停用
 - **Tailscale**: 部署在 NAS 本机
-- **部署原则**: 每个项目独立容器，与 OpenClaw 平级无依赖
+- **部署原则**: 所有 Docker 服务统一用 docker-compose 管理，目录在 `/volume1/Docker/`
+- **Docker Compose 项目**:
+  - `/volume1/Docker/Tailscale/` → Tailscale（host 网络，always 重启）
+  - `/volume1/Docker/MySQL/` → MySQL 8（3306 端口，数据在 ./data）
+  - `/volume1/Docker/Film-Forest/` → 影视森林（4 服务统一管理）
+- **镜像精简（2026-05-08）**: 从 15 个精简到 6 个，全部在使用中
+  - JDK: amazoncorretto:17-alpine（ARM64 优化，替代 openjdk:17-slim）
+  - Node: node:20-alpine（LTS，替代 node:18-alpine）
+- **Docker 规范**: guides/DOCKER_RULES.md
+- **UGOS Docker 面板**: compose 项目需注册到 SQLite 数据库才能在面板显示（见 DOCKER_RULES.md 4.6）
 
 ## Agent 分工
 
@@ -79,3 +97,4 @@
 - **底线**: 部署目录必须是 `/volume1/docker/<项目名>/`，绝对不能放 `/home/Kkwans/` 用户个人目录。触碰即死。
 - **底线**: 每30分钟 heartbeat 汇报只记该窗口内做的事，不把之前的工作算进来。如实汇报，有事说事，无事说无事。
 - **底线**: 重要教训和规范必须同时写入 MEMORY.md + 对应规范文件（AGENTS.md / guides/），不能只写当日记忆。当日记忆容易丢失，长期记忆和规范才是永久的。
+- **教训**: 不要凭猜测下结论，先调研再回答。主人说"通过可视化界面操作"就是面板UI创建，不要脑补成CLI。

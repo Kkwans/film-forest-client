@@ -1,4 +1,4 @@
-﻿# Database Designer - POWERFUL Tier Skill
+# Database Designer - POWERFUL Tier Skill
 
 A comprehensive database design and analysis toolkit that provides expert-level schema analysis, index optimization, and migration generation capabilities for modern database systems.
 

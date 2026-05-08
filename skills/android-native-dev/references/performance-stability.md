@@ -1,4 +1,4 @@
-﻿# Performance & Stability Guidelines
+# Performance & Stability Guidelines
 
 Android Vitals thresholds, performance requirements, and stability best practices.
 

@@ -1,4 +1,4 @@
-﻿# Effective Java Review Checklist
+# Effective Java Review Checklist
 
 Use this checklist when reviewing or refactoring Java code. Start at the top and stop when you have enough high-value findings; avoid dumping every possible style preference.
 

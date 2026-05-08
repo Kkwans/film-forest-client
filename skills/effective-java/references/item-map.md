@@ -1,4 +1,4 @@
-﻿# Effective Java Item Map
+# Effective Java Item Map
 
 This is a compact, paraphrased map of Effective Java, 3rd edition. Use it for item-level navigation and learning summaries; do not treat it as a substitute for the book.
 

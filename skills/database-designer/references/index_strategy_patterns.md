@@ -1,4 +1,4 @@
-﻿# Index Strategy Patterns
+# Index Strategy Patterns
 
 ## Overview
 

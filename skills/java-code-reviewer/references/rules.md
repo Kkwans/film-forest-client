@@ -1,4 +1,4 @@
-﻿# Java 代码审查规则（精简版）
+# Java 代码审查规则（精简版）
 
 ## 一、Google Java Style Guide 精简（10条）
 

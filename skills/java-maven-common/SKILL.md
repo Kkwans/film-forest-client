@@ -1,4 +1,4 @@
-﻿---
+---
 name: java-maven-common
 description: Common input handling for Java Maven project review workflows. Use when a Java Maven project arrives as a ZIP archive or a GitLab repository URL and you need to unpack, clone, normalize the project root, and identify Maven modules before deeper review or analysis.
 ---

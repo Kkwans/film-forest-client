@@ -1,4 +1,4 @@
-﻿# Database Normalization Guide
+# Database Normalization Guide
 
 ## Overview
 

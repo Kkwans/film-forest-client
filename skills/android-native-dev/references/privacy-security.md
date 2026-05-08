@@ -1,4 +1,4 @@
-﻿# Privacy & Security Guidelines
+# Privacy & Security Guidelines
 
 Security best practices and privacy requirements for Android applications.
 

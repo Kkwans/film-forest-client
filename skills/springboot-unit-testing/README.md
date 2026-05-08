@@ -1,4 +1,4 @@
-﻿# Spring Boot单元测试专家Skill
+# Spring Boot单元测试专家Skill
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-2.7%2B-green.svg)](https://spring.io/projects/spring-boot)

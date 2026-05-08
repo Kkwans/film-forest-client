@@ -1,4 +1,4 @@
-﻿# Scrape — Code Patterns
+# Scrape — Code Patterns
 
 ## robots.txt Check (Do First)
 

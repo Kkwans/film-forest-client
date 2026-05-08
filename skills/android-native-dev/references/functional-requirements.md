@@ -1,4 +1,4 @@
-﻿# Functional Requirements
+# Functional Requirements
 
 Audio, video, notifications, and other functional behavior requirements.
 

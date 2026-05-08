@@ -1,4 +1,4 @@
-﻿# Cloud Native - Spring Cloud
+# Cloud Native - Spring Cloud
 
 ## Spring Cloud Config Server
 

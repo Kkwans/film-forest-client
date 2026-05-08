@@ -14,6 +14,7 @@ import com.filmforest.resource.entity.ResourceCloud;
 import com.filmforest.resource.mapper.ResourceMagnetMapper;
 import com.filmforest.resource.mapper.ResourceOnlineMapper;
 import com.filmforest.resource.mapper.ResourceCloudMapper;
+import com.filmforest.content.mapper.EpisodeMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
@@ -25,6 +26,8 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -41,6 +44,8 @@ public class CrawlerCore {
     private static final String BASE_URL = "https://www.pkmp4.xyz";
     private static final int TIMEOUT_MS = 15000;
     private static final int RETRY_TIMES = 2;
+    private static final String PROXY_HOST = "127.0.0.1";
+    private static final int PROXY_PORT = 7890;
 
     @Autowired private MovieService movieService;
     @Autowired private DramaService dramaService;
@@ -52,6 +57,7 @@ public class CrawlerCore {
     @Autowired private ResourceMagnetMapper magnetMapper;
     @Autowired private ResourceOnlineMapper onlineMapper;
     @Autowired private ResourceCloudMapper cloudMapper;
+    @Autowired private EpisodeMapper episodeMapper;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final Pattern YEAR_PATTERN = Pattern.compile("((?:19|20)\\d{2})");
@@ -330,6 +336,7 @@ public class CrawlerCore {
                 dramaService.updateById(drama);
             }
             extractMovieResources(doc, "drama", drama.getId());
+            extractEpisodes(doc, "drama", drama.getId());
             return new int[]{isNew ? 1 : 0, isNew ? 0 : 1, 0};
         } catch (Exception e) {
             log.error("Drama detail parse error: {} - {}", detailUrl, e.getMessage());
@@ -474,6 +481,7 @@ public class CrawlerCore {
                 varietyService.updateById(variety);
             }
             extractMovieResources(doc, "variety", variety.getId());
+            extractEpisodes(doc, "variety", variety.getId());
             return new int[]{isNew ? 1 : 0, isNew ? 0 : 1, 0};
         } catch (Exception e) {
             log.error("Variety detail parse error: {}", detailUrl, e.getMessage());
@@ -523,6 +531,7 @@ public class CrawlerCore {
                 animeService.updateById(anime);
             }
             extractMovieResources(doc, "anime", anime.getId());
+            extractEpisodes(doc, "anime", anime.getId());
             return new int[]{isNew ? 1 : 0, isNew ? 0 : 1, 0};
         } catch (Exception e) {
             log.error("Anime detail parse error: {}", detailUrl, e.getMessage());
@@ -568,11 +577,71 @@ public class CrawlerCore {
                 shortDramaService.updateById(shortDrama);
             }
             extractMovieResources(doc, "short_drama", shortDrama.getId());
+            extractEpisodes(doc, "short_drama", shortDrama.getId());
             return new int[]{isNew ? 1 : 0, isNew ? 0 : 1, 0};
         } catch (Exception e) {
             log.error("Short drama detail parse error: {}", detailUrl, e.getMessage());
             return new int[]{0, 0, 0};
         }
+    }
+
+    // ========== Episode Extraction ==========
+
+    private void extractEpisodes(Document doc, String contentType, Long contentId) {
+        // 增量更新：删除旧剧集记录
+        episodeMapper.delete(new LambdaQueryWrapper<Episode>()
+                .eq(Episode::getContentType, contentType)
+                .eq(Episode::getContentId, contentId));
+
+        // 解析在线播放区域的剧集链接
+        // 格式: <li><a href="/py/475547-7-1.html" target="blank">第01集</a></li>
+        Elements episodeLinks = doc.select("a[href^=/py/]");
+        int count = 0;
+        for (Element el : episodeLinks) {
+            String href = el.attr("href");
+            String text = el.text().trim();
+
+            // 从文本提取集数: "第01集" -> 1
+            Integer episodeNum = extractEpisodeNumber(text);
+            if (episodeNum == null) {
+                // fallback: 从 URL 提取集数 /py/475547-7-1.html -> 1
+                episodeNum = extractEpisodeNumberFromUrl(href);
+            }
+            if (episodeNum == null) continue;
+
+            Episode episode = new Episode();
+            episode.setContentType(contentType);
+            episode.setContentId(contentId);
+            episode.setSeason(1);
+            episode.setEpisodeNumber(episodeNum);
+            episode.setTitle(text);
+            episodeMapper.insert(episode);
+            count++;
+        }
+
+        if (count > 0) {
+            log.info("Extracted {} episodes for {} {}", count, contentType, contentId);
+        }
+    }
+
+    /** 从 "第01集" 提取集数 */
+    private Integer extractEpisodeNumber(String text) {
+        if (text == null || text.isEmpty()) return null;
+        Matcher m = Pattern.compile("第(\\d+)集").matcher(text);
+        if (m.find()) {
+            try { return Integer.parseInt(m.group(1)); } catch (NumberFormatException e) { return null; }
+        }
+        return null;
+    }
+
+    /** 从 URL /py/475547-7-1.html 提取最后的数字作为集数 */
+    private Integer extractEpisodeNumberFromUrl(String href) {
+        if (href == null || href.isEmpty()) return null;
+        Matcher m = Pattern.compile("/py/\\d+-\\d+-(\\d+)\\.html").matcher(href);
+        if (m.find()) {
+            try { return Integer.parseInt(m.group(1)); } catch (NumberFormatException e) { return null; }
+        }
+        return null;
     }
 
     // ========== Resource Extraction ==========
@@ -657,10 +726,11 @@ public class CrawlerCore {
                 Document doc = Jsoup.connect(url)
                         .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
                         .referrer(BASE_URL)
+                        .proxy(new Proxy(Proxy.Type.HTTP, new InetSocketAddress(PROXY_HOST, PROXY_PORT)))
                         .timeout(TIMEOUT_MS)
                         .ignoreHttpErrors(true)
                         .followRedirects(true)
-                        .maxBodySize(10 * 1024 * 1024) // 10MB max to handle full content pages
+                        .maxBodySize(10 * 1024 * 1024)
                         .get();
                 if (doc != null && !doc.body().text().isEmpty()) {
                     log.info("[HTTP-FETCH] OK {} ({} bytes, title=[{}])", url, doc.body().text().length(), doc.title());

@@ -1,4 +1,4 @@
-﻿---
+---
 name: "database-designer"
 description: "Database Designer - POWERFUL Tier Skill"
 ---

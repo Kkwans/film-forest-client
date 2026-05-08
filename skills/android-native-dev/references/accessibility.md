@@ -1,4 +1,4 @@
-﻿# Accessibility Guidelines
+# Accessibility Guidelines
 
 Comprehensive accessibility requirements for Android applications.
 

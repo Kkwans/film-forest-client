@@ -126,3 +126,48 @@
 
 ### 下一步
 - 用户端列表页（/movie）
+
+## 2026-05-03
+
+### 完成内容
+- 后端功能矩阵完善（admin-server / client-server 全部 API 验证通过）
+- 爬虫调度器 CrawlerScheduler（5 种类型独立调度）
+- Episode 提取（5067 条）
+- admin-ui 功能矩阵确认（仪表盘/内容管理/爬虫管理全部可用）
+- client-ui 功能矩阵确认（首页/电影列表/电影详情/搜索可用）
+- 项目工程规划文档更新（projects/film-forest/PLAN.md）
+
+## 2026-05-04
+
+### 完成内容
+- **CSS 未生效问题修复**: standalone 模式静态文件路径映射问题定位 + 修复
+- **API 代理修复**: client-ui 和 admin-ui 的 API 地址从硬编码 Tailscale IP 改为 Next.js rewrites 代理
+  - next.config.ts 添加 rewrites 规则
+  - api.ts 改为相对路径
+  - Dockerfile 升级 node:20-alpine
+  - 验证: /api/movies、/api/content/stats、/api/crawler/status 均正常
+- **设计图分析（4张）**: 首页/电影列表/电影详情/搜索结果，全部输出分析文档
+- **用户端 UI 重构启动**: 按设计稿重写全部页面
+  - 布局组件: Header + Footer + MobileBottomNav
+  - 通用组件: MovieCard + Pagination + UI 组件库
+  - 首页/电影列表/电影详情/搜索结果页完成
+  - 电视剧/综艺/动漫/短剧列表+详情页完成
+  - CSS 主题系统（globals.css CSS 变量）
+- 模型切换: MiniMax-M2.7 → mimo-v2.5-pro → mimo-v2.5
+
+### 遇到的问题
+- 从 OpenClaw 容器内部无法 SSH 到 NAS（exec 环境无 sshpass）
+- container 文件系统只读，需要重建镜像才能更新
+
+## 2026-05-05
+
+### 完成内容
+- 记忆更新: 日记忆 + MEMORY.md 同步更新
+- 规范修正: 删除 projects/film-forest/ 下多余的 PLAN.md（规划文档统一归 tasks 管理）
+- 任务规划更新: PLAN.md 里程碑同步最新进度
+
+### 待执行
+- 用户端综艺/动漫/短剧列表页筛选功能补齐
+- 部分细节打磨 + bug 修复
+- Git remote 修复 + 代码同步
+- Docker Compose 全量部署验证

@@ -1,4 +1,4 @@
-﻿---
+---
 name: SpringBoot-MyBatis-UnitTesting
 version: 1.0.0
 description: |

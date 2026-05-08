@@ -1,4 +1,4 @@
-﻿---
+---
 name: effective_java
 description: Review, refactor, and explain Java code using distilled Effective Java principles for API design, immutability, generics, enums, streams, exceptions, concurrency, and serialization.
 ---

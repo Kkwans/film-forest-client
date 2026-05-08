@@ -1,4 +1,4 @@
-﻿---
+---
 name: java-development-manual
 description: |
   Java开发手册规约集合，基于阿里巴巴Java开发手册（嵩山版）。

@@ -34,3 +34,28 @@
 4. 如有关联 project，在 `projects/项目名/` 创建工程目录
 5. 在 MEMORY.md 中建立索引
 6. 任务完成时创建 `REVIEW.md` 做复盘
+
+
+## Git 提交规范（强制）
+
+### 提交时机
+- **每次代码修改完成后**，必须立即 commit + push 到 GitHub
+- 不能只改代码不提交，否则代码只在本地，丢失风险极高
+- 部署前必须确认代码已推送到 GitHub
+
+### 提交规范
+- commit message 使用中文，格式：`type: 简要描述`
+- type 类型：`feat`（新功能）/ `fix`（修复）/ `refactor`（重构）/ `docs`（文档）/ `chore`（杂项）
+- 每次 commit 后立即 push，不要攒多次一起推
+
+### 操作流程
+```bash
+git add -A
+git commit -m "feat: xxx"
+git push origin main
+```
+
+### 多仓库项目
+- film-forest 有 4 个独立仓库：client-ui / admin-ui / client-server / admin-server
+- 每个仓库独立 commit + push
+- 修改了哪个仓库就提交哪个，不要遗漏

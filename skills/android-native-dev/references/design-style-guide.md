@@ -1,4 +1,4 @@
-﻿# Design Style Guide
+# Design Style Guide
 
 Match visual design to app category and target audience for cohesive user experience.
 

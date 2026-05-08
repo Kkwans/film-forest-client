@@ -1,4 +1,4 @@
-﻿# Testing - Spring Boot Test
+# Testing - Spring Boot Test
 
 ## Unit Testing with JUnit 5
 
