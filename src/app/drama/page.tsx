@@ -1,26 +1,24 @@
 import MovieListClient from '../movie/MovieListClient';
+import { parseRegion, parseGenre } from '@/lib/utils';
 
-interface ContentItem { id: number; title: string; cover: string; year: number; region: string; rating?: number; genre?: string[]; }
-
-function mapItem(m: any): ContentItem {
-  return {
-    id: m.id, title: m.title, cover: m.posterUrl || '', year: m.year || 0,
-    region: Array.isArray(m.region) ? m.region[0] : (m.region || ''),
-    rating: m.scoreDouban || m.scoreImdb || undefined,
-    genre: Array.isArray(m.genre) ? m.genre : (m.genre ? JSON.parse(m.genre) : []),
-  };
-}
-
-async function fetchItems() {
+async function fetchItems(apiPath: string) {
   try {
-    const res = await fetch('http://localhost:8080/api/dramas?page=1&size=24', { cache: 'no-store' });
+    const res = await fetch(`http://localhost:8080${apiPath}?page=1&size=24`, { cache: 'no-store' });
     const data = await res.json();
     const raw = data?.data?.records || [];
-    return { items: raw.map(mapItem), total: data?.data?.total || 0 };
+    return {
+      items: raw.map((m: any) => ({
+        id: m.id, title: m.title, cover: m.posterUrl || '', year: m.year || 0,
+        region: parseRegion(m.region),
+        rating: m.scoreDouban || m.scoreImdb || undefined,
+        genre: parseGenre(m.genre),
+      })),
+      total: data?.data?.total || 0,
+    };
   } catch { return { items: [], total: 0 }; }
 }
 
 export default async function DramaPage() {
-  const { items, total } = await fetchItems();
+  const { items, total } = await fetchItems('/api/dramas');
   return <MovieListClient initialItems={items} initialTotal={total} contentType="drama" apiBase="/api/dramas" />;
 }

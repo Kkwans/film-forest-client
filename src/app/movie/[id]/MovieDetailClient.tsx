@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
+import { cleanTitle as cleanTitleUtil, cleanStoryline } from '@/lib/utils';
 
 interface MovieDetail {
   id: number; title: string; cover: string; year: number; region: string;
@@ -19,13 +20,56 @@ export default function MovieDetailClient({ movie, magnetResources, cloudResourc
   const [qualityFilter, setQualityFilter] = useState('全部');
   const [copiedId, setCopiedId] = useState<number | null>(null);
 
+  // Deduplicate magnets: remove "磁力下载" duplicates that share the same magnetUrl as real entries
+  const realMagnets = useMemo(() => {
+    const real = magnetResources.filter(r => r.title !== '磁力下载');
+    const realUrls = new Set(real.map(r => r.magnetUrl));
+    // Also keep entries with "磁力下载" only if their URL isn't already in real entries
+    const dl = magnetResources.filter(r => r.title === '磁力下载' && !realUrls.has(r.magnetUrl));
+    return [...real, ...dl];
+  }, [magnetResources]);
+
+  // Deduplicate cloud: remove "网盘下载" duplicates
+  const realClouds = useMemo(() => {
+    const real = cloudResources.filter(r => r.title !== '网盘下载');
+    const realUrls = new Set(real.map(r => r.shareUrl));
+    const dl = cloudResources.filter(r => r.title === '网盘下载' && !realUrls.has(r.shareUrl));
+    return [...real, ...dl];
+  }, [cloudResources]);
+
   const copyLink = (url: string, resId: number) => {
-    navigator.clipboard.writeText(url).then(() => { setCopiedId(resId); setTimeout(() => setCopiedId(null), 2000); });
+    // HTTP-compatible copy (navigator.clipboard only works on HTTPS)
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(url).then(() => { setCopiedId(resId); setTimeout(() => setCopiedId(null), 2000); });
+    } else {
+      const textarea = document.createElement('textarea');
+      textarea.value = url;
+      textarea.style.position = 'fixed';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try { document.execCommand('copy'); setCopiedId(resId); setTimeout(() => setCopiedId(null), 2000); } catch {}
+      document.body.removeChild(textarea);
+    }
   };
 
-  const filteredMagnets = qualityFilter === '全部' ? magnetResources : magnetResources.filter(r =>
-    r.resolution?.toLowerCase().includes(qualityFilter.toLowerCase()) || r.title?.toLowerCase().includes(qualityFilter.toLowerCase())
-  );
+  const filteredMagnets = qualityFilter === '全部' ? realMagnets : realMagnets.filter(r => {
+    const t = (r.title || '').toLowerCase();
+    const res = (r.resolution || '').toLowerCase();
+    if (qualityFilter === '4K') return res.includes('4k') || t.includes('4k');
+    if (qualityFilter === '特效1080P') return (res.includes('1080') || t.includes('1080')) && t.includes('特效');
+    if (qualityFilter === '中字1080P') return (res.includes('1080') || t.includes('1080')) && t.includes('中字') && !t.includes('特效');
+    if (qualityFilter === '1080P') return (res.includes('1080') || t.includes('1080')) && !t.includes('中字') && !t.includes('特效');
+    if (qualityFilter === '720P') return res.includes('720') || t.includes('720');
+    if (qualityFilter === '未知') {
+      return !(res.includes('4k') || t.includes('4k'))
+        && !((res.includes('1080') || t.includes('1080')) && t.includes('特效'))
+        && !((res.includes('1080') || t.includes('1080')) && t.includes('中字') && !t.includes('特效'))
+        && !((res.includes('1080') || t.includes('1080')) && !t.includes('中字') && !t.includes('特效'))
+        && !(res.includes('720') || t.includes('720'));
+    }
+    return false;
+  });
 
   return (
     <div className="flex flex-col gap-6">
@@ -43,7 +87,7 @@ export default function MovieDetailClient({ movie, magnetResources, cloudResourc
         </div>
         <div className="flex-1 flex flex-col gap-3 min-w-0">
           <h1 className="text-2xl md:text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>
-            {movie.title} {movie.year && <span className="text-lg font-normal" style={{ color: 'var(--text-muted)' }}>({movie.year})</span>}
+            {cleanTitleUtil(movie.title)} {movie.year > 0 && <span className="text-lg font-normal" style={{ color: 'var(--text-muted)' }}>({movie.year})</span>}
           </h1>
           <div className="flex flex-wrap items-center gap-3">
             {movie.rating != null && <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-sm font-medium" style={{ backgroundColor: '#fef2f2', color: '#dc2626' }}>豆瓣 {movie.rating.toFixed(1)}</span>}
@@ -65,11 +109,12 @@ export default function MovieDetailClient({ movie, magnetResources, cloudResourc
 
       {movie.summary && (
         <section className="rounded-xl p-5 border" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}>
-          <h2 className="text-lg font-bold mb-3" style={{ color: 'var(--text-primary)' }}>剧集介绍</h2>
-          <p className={`text-sm leading-relaxed ${synopsisExpanded ? '' : 'line-clamp-3'}`} style={{ color: 'var(--text-secondary)' }}>{movie.summary}</p>
-          {movie.summary.length > 100 && (
-            <button onClick={() => setSynopsisExpanded(!synopsisExpanded)} className="mt-2 text-sm font-medium active:opacity-70 transition-opacity" style={{ color: 'var(--accent)' }}>
-              {synopsisExpanded ? '收起部分 ↑' : '展开全部 ↓'}
+          <h2 className="text-lg font-bold mb-3" style={{ color: 'var(--text-primary)' }}>简介</h2>
+          <p className={`text-sm leading-relaxed ${synopsisExpanded ? '' : 'line-clamp-3'}`} style={{ color: 'var(--text-secondary)' }}>{cleanStoryline(movie.summary)}</p>
+          {cleanStoryline(movie.summary).length > 200 && (
+            <button onClick={() => setSynopsisExpanded(!synopsisExpanded)} className="mt-3 text-sm font-medium active:opacity-70 transition-opacity flex items-center gap-1" style={{ color: 'var(--accent)' }}>
+              {synopsisExpanded ? '收起' : '展开全部'}
+              <svg className={`w-4 h-4 transition-transform ${synopsisExpanded ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
             </button>
           )}
         </section>
@@ -78,34 +123,49 @@ export default function MovieDetailClient({ movie, magnetResources, cloudResourc
       <section className="rounded-xl p-5 border" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}>
         <h2 className="text-lg font-bold mb-4" style={{ color: 'var(--text-primary)' }}>下载资源</h2>
         <div className="flex gap-6 border-b mb-4" style={{ borderColor: 'var(--border-color)' }}>
-          {[{ key: 'magnet' as const, label: '磁力链接', count: magnetResources.length }, { key: 'cloud' as const, label: '网盘资源', count: cloudResources.length }].map(tab => (
+          {[{ key: 'magnet' as const, label: '磁力链接', count: realMagnets.length }, { key: 'cloud' as const, label: '网盘资源', count: realClouds.length }].map(tab => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key)} className="pb-3 text-sm font-medium border-b-2 active:opacity-70 transition-all" style={{ color: activeTab === tab.key ? 'var(--accent)' : 'var(--text-secondary)', borderColor: activeTab === tab.key ? 'var(--accent)' : 'transparent' }}>
               {tab.label} ({tab.count})
             </button>
           ))}
         </div>
-        {activeTab === 'magnet' && magnetResources.length > 0 && (
+        {activeTab === 'magnet' && realMagnets.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-4">
-            {['全部', '4K', '1080P', '720P'].map(q => (
-              <button key={q} onClick={() => setQualityFilter(q)} className="px-3 py-1 rounded-lg text-sm font-medium active:scale-95 transition-all" style={{ backgroundColor: qualityFilter === q ? 'var(--accent)' : 'var(--bg-primary)', color: qualityFilter === q ? '#fff' : 'var(--text-secondary)', border: qualityFilter === q ? 'none' : '1px solid var(--border-color)' }}>{q}</button>
-            ))}
+            {(() => {
+              const labels: { key: string; test: (r: Resource) => boolean }[] = [
+                { key: '4K', test: r => { const t = (r.title||'').toLowerCase(); const res = (r.resolution||'').toLowerCase(); return res.includes('4k') || t.includes('4k'); } },
+                { key: '特效1080P', test: r => { const t = (r.title||'').toLowerCase(); const res = (r.resolution||'').toLowerCase(); return (res.includes('1080') || t.includes('1080')) && (t.includes('特效')); } },
+                { key: '中字1080P', test: r => { const t = (r.title||'').toLowerCase(); const res = (r.resolution||'').toLowerCase(); return (res.includes('1080') || t.includes('1080')) && (t.includes('中字')) && !t.includes('特效'); } },
+                { key: '1080P', test: r => { const t = (r.title||'').toLowerCase(); const res = (r.resolution||'').toLowerCase(); return (res.includes('1080') || t.includes('1080')) && !t.includes('中字') && !t.includes('特效'); } },
+                { key: '720P', test: r => { const t = (r.title||'').toLowerCase(); const res = (r.resolution||'').toLowerCase(); return res.includes('720') || t.includes('720'); } },
+              ];
+              const available = labels.filter(l => realMagnets.some(l.test));
+              const hasUnknown = realMagnets.some(r => { const t = (r.title||'').toLowerCase(); const res = (r.resolution||'').toLowerCase(); return !labels.some(l => l.test(r)); });
+              return [
+                <button key="全部" onClick={() => setQualityFilter('全部')} className="px-3 py-1 rounded-lg text-sm font-medium transition-colors" style={{ backgroundColor: qualityFilter === '全部' ? 'var(--accent)' : 'var(--bg-primary)', color: qualityFilter === '全部' ? '#fff' : 'var(--text-secondary)', border: qualityFilter === '全部' ? 'none' : '1px solid var(--border-color)' }}>全部</button>,
+                ...available.map(l => (
+                  <button key={l.key} onClick={() => setQualityFilter(l.key)} className="px-3 py-1 rounded-lg text-sm font-medium transition-colors" style={{ backgroundColor: qualityFilter === l.key ? 'var(--accent)' : 'var(--bg-primary)', color: qualityFilter === l.key ? '#fff' : 'var(--text-secondary)', border: qualityFilter === l.key ? 'none' : '1px solid var(--border-color)' }}>{l.key}</button>
+                )),
+                hasUnknown ? <button key="未知" onClick={() => setQualityFilter('未知')} className="px-3 py-1 rounded-lg text-sm font-medium transition-colors" style={{ backgroundColor: qualityFilter === '未知' ? 'var(--accent)' : 'var(--bg-primary)', color: qualityFilter === '未知' ? '#fff' : 'var(--text-secondary)', border: qualityFilter === '未知' ? 'none' : '1px solid var(--border-color)' }}>未知</button> : null,
+              ].filter(Boolean);
+            })()}
           </div>
         )}
         {activeTab === 'magnet' ? (
           filteredMagnets.length === 0 ? <p className="text-center py-8 text-sm" style={{ color: 'var(--text-muted)' }}>暂无磁力链接</p> : (
             <div className="space-y-2">
               {filteredMagnets.map(r => (
-                <div key={r.id} className="flex items-center justify-between gap-3 p-3 rounded-lg border" style={{ backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)' }}>
-                  <div className="flex items-center gap-3 min-w-0 flex-1"><span className="text-lg shrink-0">🧲</span><div className="min-w-0 flex-1"><p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{r.title || '磁力链接'}</p>{r.resolution && <span className="px-1.5 py-0.5 rounded text-xs mt-0.5 inline-block" style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}>{r.resolution}</span>}</div></div>
+                <div key={r.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 p-3 rounded-lg border" style={{ backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)' }}>
+                  <div className="flex items-center gap-3 min-w-0 flex-1"><span className="text-lg shrink-0">🧲</span><div className="min-w-0 flex-1"><p className="text-sm font-medium break-all sm:truncate" style={{ color: 'var(--text-primary)' }}>{r.resolution && <span className="inline-block px-1.5 py-0.5 rounded text-xs font-medium mr-2" style={{ backgroundColor: 'var(--accent)', color: '#fff' }}>{r.resolution}</span>}{r.title || '磁力链接'}</p></div></div>
                   <button onClick={() => copyLink(r.magnetUrl || '', r.id)} className="shrink-0 px-4 py-1.5 rounded-lg text-xs font-medium text-white active:scale-95 transition-all" style={{ backgroundColor: copiedId === r.id ? '#6b7280' : 'var(--accent)' }}>{copiedId === r.id ? '已复制 ✓' : '复制链接'}</button>
                 </div>
               ))}
             </div>
           )
         ) : (
-          cloudResources.length === 0 ? <p className="text-center py-8 text-sm" style={{ color: 'var(--text-muted)' }}>暂无网盘资源</p> : (
+          realClouds.length === 0 ? <p className="text-center py-8 text-sm" style={{ color: 'var(--text-muted)' }}>暂无网盘资源</p> : (
             <div className="space-y-2">
-              {cloudResources.map(r => (
+              {realClouds.map(r => (
                 <div key={r.id} className="flex items-center justify-between gap-3 p-3 rounded-lg border" style={{ backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)' }}>
                   <div className="flex items-center gap-3 min-w-0 flex-1"><span className="text-lg shrink-0">☁️</span><div className="min-w-0 flex-1"><p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{r.title || '网盘资源'}</p>{r.storageName && <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{r.storageName}</p>}</div></div>
                   <button onClick={() => copyLink(r.shareUrl || '', r.id)} className="shrink-0 px-4 py-1.5 rounded-lg text-xs font-medium text-white active:scale-95 transition-all" style={{ backgroundColor: copiedId === r.id ? '#6b7280' : 'var(--accent)' }}>{copiedId === r.id ? '已复制 ✓' : '复制链接'}</button>

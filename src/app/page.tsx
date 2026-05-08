@@ -1,17 +1,19 @@
 import Link from 'next/link';
 import MovieCard from '@/components/MovieCard';
 import HomeClient from './HomeClient';
+import { parseRegion, parseGenre } from '@/lib/utils';
 
 interface ContentItem {
   id: number;
   title: string;
   cover: string;
   year: number;
-  region: string;
+  region: string | string[];
   rating?: number;
   genre?: string[];
   status?: string;
   episodes?: number;
+  duration?: number;
 }
 
 function mapItem(m: any, type: string): ContentItem {
@@ -20,11 +22,12 @@ function mapItem(m: any, type: string): ContentItem {
     title: m.title,
     cover: m.posterUrl || m.cover || '',
     year: m.year || 0,
-    region: Array.isArray(m.region) ? m.region[0] : (m.region || ''),
+    region: parseRegion(m.region),
     rating: m.scoreDouban || m.scoreImdb || undefined,
-    genre: Array.isArray(m.genre) ? m.genre : (m.genre ? JSON.parse(m.genre) : []),
+    genre: parseGenre(m.genre),
     status: m.status === 1 ? '在映' : undefined,
-    episodes: m.episodes || undefined,
+    episodes: m.totalEpisode || m.episodes || undefined,
+    duration: m.duration || undefined,
   };
 }
 

@@ -7,7 +7,6 @@ const TABS = [
   { label: '首页', href: '/', icon: '🏠' },
   { label: '分类', href: '/category', icon: '📂' },
   { label: '搜索', href: '/search', icon: '🔍' },
-  { label: '我的', href: '#', icon: '👤' },
 ];
 
 export default function MobileBottomNav() {

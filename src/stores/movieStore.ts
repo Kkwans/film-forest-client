@@ -6,7 +6,7 @@ export interface Movie {
   cover: string;
   type: string;
   year: number;
-  region: string;
+  region: string | string[];
   rating?: number;
   summary?: string;
   status?: string;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useRef } from 'react';
 import Link from 'next/link';
 import MovieCard from '@/components/MovieCard';
 
@@ -9,35 +9,51 @@ interface ContentItem {
   title: string;
   cover: string;
   year: number;
-  region: string;
+  region: string | string[];
   rating?: number;
   genre?: string[];
   status?: string;
   episodes?: number;
+  duration?: number;
 }
 
 function HorizontalSection({ title, href, items, type }: { title: string; href: string; items: ContentItem[]; type: string }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const scroll = (dir: 'left' | 'right') => {
-    if (scrollRef.current) scrollRef.current.scrollBy({ left: dir === 'left' ? -600 : 600, behavior: 'smooth' });
+    if (scrollRef.current) scrollRef.current.scrollBy({ left: dir === 'left' ? -400 : 400, behavior: 'smooth' });
   };
   if (items.length === 0) return null;
+
+  const displayItems = items.slice(0, 12);
+
   return (
     <section>
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{title}</h2>
-        <Link href={href} className="text-sm hover:underline transition-colors" style={{ color: 'var(--accent)' }}>查看更多 →</Link>
+        <Link href={href} className="text-sm font-medium flex items-center gap-1 hover:gap-2 transition-all" style={{ color: 'var(--accent)' }}>
+          更多
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        </Link>
       </div>
-      <div className="relative group/scroll">
-        <button onClick={() => scroll('left')} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full flex items-center justify-center opacity-0 group-hover/scroll:opacity-100 transition-opacity" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>‹</button>
-        <div ref={scrollRef} className="flex gap-3 overflow-x-auto scrollbar-hide pb-2" style={{ scrollSnapType: 'x mandatory' }}>
+
+      {/* PC: grid 2 rows x 6 cols */}
+      <div className="hidden md:grid grid-cols-6 gap-3">
+        {displayItems.map((item) => (
+          <MovieCard key={item.id} id={item.id} title={item.title} cover={item.cover} year={item.year} region={item.region} rating={item.rating} genre={item.genre} type={type} duration={item.duration} episodes={item.episodes} href={`/${type}/${item.id}`} />
+        ))}
+      </div>
+
+      {/* Mobile: horizontal scroll */}
+      <div className="md:hidden relative">
+        <div ref={scrollRef} className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 snap-x snap-mandatory" style={{ WebkitOverflowScrolling: 'touch' }}>
           {items.map((item) => (
-            <div key={item.id} className="flex-shrink-0 w-[140px] sm:w-[160px]" style={{ scrollSnapAlign: 'start' }}>
-              <MovieCard id={item.id} title={item.title} cover={item.cover} year={item.year} region={item.region} rating={item.rating} type={type} href={`/${type}/${item.id}`} />
+            <div key={item.id} className="flex-shrink-0 w-[120px] snap-start">
+              <MovieCard id={item.id} title={item.title} cover={item.cover} year={item.year} region={item.region} rating={item.rating} genre={item.genre} type={type} duration={item.duration} episodes={item.episodes} href={`/${type}/${item.id}`} />
             </div>
           ))}
         </div>
-        <button onClick={() => scroll('right')} className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full flex items-center justify-center opacity-0 group-hover/scroll:opacity-100 transition-opacity" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>›</button>
+        {/* Scroll hint gradient */}
+        <div className="absolute right-0 top-0 bottom-0 w-8 pointer-events-none" style={{ background: 'linear-gradient(to right, transparent, var(--bg-primary))' }} />
       </div>
     </section>
   );
@@ -46,12 +62,11 @@ function HorizontalSection({ title, href, items, type }: { title: string; href: 
 export default function HomeClient({ initialMovies, initialDramas, initialVarieties, initialAnimes, initialShorts }: {
   initialMovies: ContentItem[]; initialDramas: ContentItem[]; initialVarieties: ContentItem[]; initialAnimes: ContentItem[]; initialShorts: ContentItem[];
 }) {
-  const heroMovie = initialMovies.length > 0 ? initialMovies[0] : null;
   return (
     <div className="flex flex-col gap-10">
       {/* Hero */}
       <section className="relative overflow-hidden rounded-2xl" style={{ background: 'linear-gradient(135deg, var(--bg-secondary), var(--bg-card))', border: '1px solid var(--border-color)' }}>
-        <div className="relative px-6 py-10 md:px-16 md:py-24">
+        <div className="relative px-6 py-6 md:px-16 md:py-14">
           <div className="max-w-2xl">
             <div className="inline-block px-3 py-1 rounded-full text-xs font-medium mb-4" style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>影视资源聚合平台</div>
             <h1 className="text-3xl md:text-5xl font-bold mb-4 leading-tight" style={{ color: 'var(--text-primary)' }}>

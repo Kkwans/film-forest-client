@@ -6,7 +6,6 @@ import { usePathname } from 'next/navigation';
 
 const NAV_ITEMS = [
   { label: '首页', href: '/' },
-  { label: '分类', href: '/category' },
   { label: '电影', href: '/movie' },
   { label: '电视剧', href: '/drama' },
   { label: '综艺', href: '/variety' },

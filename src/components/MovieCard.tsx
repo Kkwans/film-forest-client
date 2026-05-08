@@ -1,19 +1,19 @@
 import Link from 'next/link';
+import { parseRegion, parseGenre, cleanTitle as cleanTitleUtil } from '@/lib/utils';
 
 interface MovieCardProps {
   id: number;
   title: string;
   cover?: string;
   year?: number;
-  region?: string;
+  region?: string | string[];
   rating?: number;
   type?: string;
   genre?: string[];
   status?: string;
   episodes?: number;
+  duration?: number;
   href: string;
-  badge?: string;
-  badgeColor?: string;
 }
 
 export default function MovieCard({
@@ -23,19 +23,40 @@ export default function MovieCard({
   year,
   region,
   rating,
+  type,
   genre,
   status,
   episodes,
+  duration,
   href,
-  badge,
-  badgeColor = 'var(--accent)',
 }: MovieCardProps) {
+  // Normalize region and genre using shared utils
+  const regionArr = parseRegion(region);
+  const genreArr = parseGenre(genre);
+  // For cards: show only first region
+  const regionDisplay = regionArr.length > 0 ? regionArr[0] : '';
+  // Clean title
+  const cleanTitle = cleanTitleUtil(title);
   const fallbackCover = `https://picsum.photos/seed/${id}/300/450`;
+
+  // Build subtitle: year / region / genre
+  const parts: string[] = [];
+  if (year) parts.push(String(year));
+  if (regionDisplay) parts.push(regionDisplay);
+  if (genreArr.length > 0) parts.push(genreArr.slice(0, 2).join(','));
+
+  // Duration or episode badge text
+  let badgeText = '';
+  if (type === 'movie' && duration) {
+    badgeText = `${duration}分钟`;
+  } else if (episodes && episodes > 0) {
+    badgeText = `${episodes}集`;
+  }
 
   return (
     <Link href={href} className="group block">
       <div
-        className="rounded-lg overflow-hidden border card-hover"
+        className="rounded-xl overflow-hidden border card-hover"
         style={{
           backgroundColor: 'var(--bg-card)',
           borderColor: 'var(--border-color)',
@@ -49,7 +70,7 @@ export default function MovieCard({
             className="w-full h-full object-cover img-zoom"
             loading="lazy"
           />
-          {/* Rating badge */}
+          {/* Rating badge - top right */}
           {rating != null && (
             <span
               className="absolute top-2 right-2 px-1.5 py-0.5 rounded text-xs font-bold text-white"
@@ -58,7 +79,7 @@ export default function MovieCard({
               {rating.toFixed(1)}
             </span>
           )}
-          {/* Status badge */}
+          {/* Status badge - top left */}
           {status && (
             <span
               className="absolute top-2 left-2 px-1.5 py-0.5 rounded text-xs font-medium text-white"
@@ -68,65 +89,46 @@ export default function MovieCard({
                     ? '#f59e0b'
                     : status === '已完结'
                     ? '#6b7280'
-                    : badgeColor,
+                    : 'var(--accent)',
               }}
             >
               {status}
             </span>
           )}
-          {/* Custom badge */}
-          {badge && !status && (
-            <span
-              className="absolute top-2 left-2 px-1.5 py-0.5 rounded text-xs font-medium text-white"
-              style={{ backgroundColor: badgeColor }}
-            >
-              {badge}
+          {/* Duration/Episode badge - bottom right, semi-transparent */}
+          {badgeText && (
+            <span className="absolute bottom-2 right-2 px-2 py-0.5 rounded text-xs font-medium text-white bg-black/60 backdrop-blur-sm">
+              {badgeText}
             </span>
           )}
-          {/* Quality badge */}
-          <span
-            className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded text-xs font-medium text-white bg-black/60"
-          >
-            4K/蓝光
-          </span>
         </div>
 
         {/* Info */}
-        <div className="p-3">
-          <p
-            className="font-medium text-sm truncate group-hover:text-[var(--accent)] transition-colors"
-            style={{ color: 'var(--text-primary)' }}
-          >
-            {title}
-          </p>
-          <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-            {year}
-            {region ? ` · ${region}` : ''}
-            {episodes ? ` · ${episodes}集` : ''}
-          </p>
-          {/* Rating row */}
-          {rating != null && (
-            <p className="text-xs mt-1 font-medium" style={{ color: 'var(--accent)' }}>
-              豆瓣 {rating.toFixed(1)}
+        <div className="p-2 md:p-3">
+          {/* Title + Rating on same line */}
+          <div className="flex items-center gap-1.5">
+            <p
+              className="font-medium text-xs md:text-sm truncate flex-1 min-w-0 group-hover:text-[var(--accent)] transition-colors"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              {cleanTitle}
             </p>
-          )}
-          {/* Genre tags */}
-          {genre && genre.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-1.5">
-              {genre.slice(0, 3).map((g, i) => (
-                <span
-                  key={i}
-                  className="px-1.5 py-0.5 rounded text-xs"
-                  style={{
-                    backgroundColor: 'var(--bg-primary)',
-                    color: 'var(--text-muted)',
-                    border: '1px solid var(--border-color)',
-                  }}
-                >
-                  {g}
-                </span>
-              ))}
-            </div>
+            {rating != null && (
+              <span className="text-xs font-semibold shrink-0" style={{ color: 'var(--accent)' }}>
+                {rating.toFixed(1)}
+              </span>
+            )}
+          </div>
+          {/* Year left / Region right */}
+          <div className="flex items-center justify-between mt-1">
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{year || ''}</span>
+            {regionDisplay && <span className="text-xs truncate ml-2" style={{ color: 'var(--text-muted)' }}>{regionDisplay}</span>}
+          </div>
+          {/* Genre line */}
+          {genreArr.length > 0 && (
+            <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>
+              {genreArr.slice(0, 3).join('/')}
+            </p>
           )}
         </div>
       </div>

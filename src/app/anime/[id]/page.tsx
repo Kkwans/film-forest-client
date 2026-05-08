@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { animeApi } from '@/lib/api';
 import { useResource } from '@/hooks/useResource';
+import { parseRegion, parseGenre, cleanTitle as cleanTitleUtil, cleanStoryline } from '@/lib/utils';
 
 interface AnimeDetail {
   id: number; title: string; cover: string; year: number; region: string;
@@ -34,10 +35,10 @@ export default function AnimeDetailPage() {
       if (d && d.id) {
         setItem({
           id: d.id, title: d.title, cover: d.posterUrl, year: d.year,
-          region: Array.isArray(d.region) ? d.region[0] : (d.region || ''),
-          rating: d.scoreDouban, summary: d.storyline,
+          region: parseRegion(d.region).join(' / '),
+          rating: d.scoreDouban, summary: cleanStoryline(d.storyline),
           status: d.status === 1 ? '连载中' : '已完结',
-          totalEpisode: d.totalEpisode, genre: d.genre, director: d.director,
+          totalEpisode: d.totalEpisode, genre: parseGenre(d.genre), director: Array.isArray(d.director) ? d.director : (d.director ? JSON.parse(d.director) : []),
         });
       }
     } catch { setItem(null); } finally { setLoading(false); }
@@ -63,7 +64,7 @@ export default function AnimeDetailPage() {
           <img src={item.cover || `https://picsum.photos/seed/a${id}/400/600`} alt={item.title} className="w-full aspect-[2/3] object-cover rounded-xl" />
         </div>
         <div className="flex-1 flex flex-col gap-3 min-w-0">
-          <h1 className="text-2xl md:text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>{item.title}{item.year && <span className="text-lg font-normal ml-2" style={{ color: 'var(--text-muted)' }}>({item.year})</span>}</h1>
+          <h1 className="text-2xl md:text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>{cleanTitleUtil(item.title)}{item.year > 0 && <span className="text-lg font-normal ml-2" style={{ color: 'var(--text-muted)' }}>({item.year})</span>}</h1>
           {item.rating != null && <span className="inline-flex items-center px-2 py-1 rounded text-sm font-medium w-fit" style={{ backgroundColor: '#fef2f2', color: '#dc2626' }}>豆瓣 {item.rating.toFixed(1)}</span>}
           {item.genre && item.genre.length > 0 && <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{item.genre.join(' / ')}</p>}
           {item.director && item.director.length > 0 && <div className="text-sm"><span className="font-medium" style={{ color: 'var(--text-primary)' }}>导演：</span><span style={{ color: 'var(--text-secondary)' }}>{item.director.join(' / ')}</span></div>}
@@ -76,9 +77,14 @@ export default function AnimeDetailPage() {
 
       {item.summary && (
         <section className="rounded-xl p-5 border" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}>
-          <h2 className="text-lg font-bold mb-3" style={{ color: 'var(--text-primary)' }}>剧情简介</h2>
+          <h2 className="text-lg font-bold mb-3" style={{ color: 'var(--text-primary)' }}>简介</h2>
           <p className={`text-sm leading-relaxed ${synopsisExpanded ? '' : 'line-clamp-3'}`} style={{ color: 'var(--text-secondary)' }}>{item.summary}</p>
-          {item.summary.length > 100 && <button onClick={() => setSynopsisExpanded(!synopsisExpanded)} className="mt-2 text-sm font-medium" style={{ color: 'var(--accent)' }}>{synopsisExpanded ? '收起 ↑' : '展开全部 ↓'}</button>}
+          {item.summary.length > 200 && (
+            <button onClick={() => setSynopsisExpanded(!synopsisExpanded)} className="mt-3 text-sm font-medium active:opacity-70 transition-opacity flex items-center gap-1" style={{ color: 'var(--accent)' }}>
+              {synopsisExpanded ? '收起' : '展开全部'}
+              <svg className={`w-4 h-4 transition-transform ${synopsisExpanded ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+          )}
         </section>
       )}
 

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import MovieDetailClient from './MovieDetailClient';
+import { parseRegion, parseGenre } from '@/lib/utils';
 
 async function fetchMovie(id: number) {
   try {
@@ -9,10 +10,10 @@ async function fetchMovie(id: number) {
     if (!m || !m.id) return null;
     return {
       id: m.id, title: m.title, cover: m.posterUrl || '', year: m.year || 0,
-      region: Array.isArray(m.region) ? m.region[0] : (m.region || ''),
+      region: parseRegion(m.region).join(' / '),
       rating: m.scoreDouban, ratingImdb: m.scoreImdb, ratingRT: m.scoreRT,
       summary: m.storyline || '',
-      genre: Array.isArray(m.genre) ? m.genre : (m.genre ? JSON.parse(m.genre) : []),
+      genre: parseGenre(m.genre),
       director: Array.isArray(m.director) ? m.director : (m.director ? JSON.parse(m.director) : []),
       actor: Array.isArray(m.actor) ? m.actor : (m.actor ? JSON.parse(m.actor) : []),
       language: Array.isArray(m.language) ? m.language : (m.language ? [m.language] : []),
