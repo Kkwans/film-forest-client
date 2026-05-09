@@ -1,13 +1,15 @@
 // @ts-nocheck
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { cleanTitle as cleanTitleUtil, cleanStoryline } from '@/lib/utils';
 import { useUserStore } from '@/stores/userStore';
+import { listApi } from '@/lib/userApi';
 import dynamic from 'next/dynamic';
 
 const CollectModal = dynamic(() => import('@/components/CollectModal'), { ssr: false });
+const WatchedModal = dynamic(() => import('@/components/WatchedModal'), { ssr: false });
 
 interface MovieDetail {
   id: number; title: string; cover: string; year: number; region: string;
@@ -25,7 +27,39 @@ export default function MovieDetailClient({ movie, magnetResources, cloudResourc
   const [qualityFilter, setQualityFilter] = useState('全部');
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const [collectOpen, setCollectOpen] = useState(false);
+  const [watchedOpen, setWatchedOpen] = useState(false);
+  const [collectAdded, setCollectAdded] = useState(false);
+  const [collectToggling, setCollectToggling] = useState(false);
+  const clickTimer = useRef<NodeJS.Timeout | null>(null);
   const isAuthenticated = useUserStore((s) => s.isAuthenticated);
+
+  // Collect button: single click → want_to_watch, double click → open modal
+  const handleCollectSingle = useCallback(async () => {
+    if (!isAuthenticated || collectToggling) return;
+    setCollectToggling(true);
+    try {
+      const res = await listApi.getAll();
+      const lists = res.data.data || res.data;
+      const wantList = Array.isArray(lists) ? lists.find((l: any) => l.type === 'want_to_watch') : null;
+      if (wantList) {
+        await listApi.addItem(wantList.id, { movieId: movie.id, contentType: 'movie' });
+        setCollectAdded(true);
+      }
+    } catch { setCollectAdded(true); } finally { setCollectToggling(false); }
+  }, [isAuthenticated, collectToggling, movie.id]);
+
+  const handleCollectClick = useCallback(() => {
+    if (clickTimer.current) {
+      clearTimeout(clickTimer.current);
+      clickTimer.current = null;
+      setCollectOpen(true);
+    } else {
+      clickTimer.current = setTimeout(() => {
+        clickTimer.current = null;
+        handleCollectSingle();
+      }, 250);
+    }
+  }, [handleCollectSingle]);
 
   // Deduplicate magnets: remove "磁力下载" duplicates that share the same magnetUrl as real entries
   const realMagnets = useMemo(() => {
@@ -94,19 +128,42 @@ export default function MovieDetailClient({ movie, magnetResources, cloudResourc
           <img src={movie.cover || `https://picsum.photos/seed/m${movie.id}/400/600`} alt={movie.title} className="w-full aspect-[2/3] object-cover rounded-xl" />
         </div>
         <div className="flex-1 flex flex-col gap-3 min-w-0">
-          <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-3" style={{ color: 'var(--text-primary)' }}>
+          <h1 className="text-2xl md:text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>
             {cleanTitleUtil(movie.title)} {movie.year > 0 && <span className="text-lg font-normal" style={{ color: 'var(--text-muted)' }}>({movie.year})</span>}
-            <button
-              onClick={() => setCollectOpen(true)}
-              className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center border transition-colors"
-              style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
-              title="收藏"
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-              </svg>
-            </button>
           </h1>
+          {/* Action buttons: Collect + Watched */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleCollectClick}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border transition-colors"
+              style={{
+                borderColor: collectAdded ? 'var(--accent)' : 'var(--border-color)',
+                color: collectAdded ? 'var(--accent)' : 'var(--text-secondary)',
+                backgroundColor: collectAdded ? 'var(--accent-light)' : 'transparent',
+              }}
+              title="单击加入想看，双击选择片单"
+            >
+              {collectToggling ? (
+                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill={collectAdded ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                </svg>
+              )}
+              <span>{collectAdded ? '已想看' : '想看'}</span>
+            </button>
+            <button
+              onClick={() => setWatchedOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-white transition-colors"
+              style={{ backgroundColor: 'var(--accent)' }}
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </svg>
+              <span>看过</span>
+            </button>
+          </div>
           <div className="flex flex-wrap items-center gap-3">
             {movie.rating != null && <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-sm font-medium" style={{ backgroundColor: '#fef2f2', color: '#dc2626' }}>豆瓣 {movie.rating.toFixed(1)}</span>}
             {movie.ratingImdb != null && <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-sm font-medium" style={{ backgroundColor: '#fefce8', color: '#ca8a04' }}>IMDB {movie.ratingImdb.toFixed(1)}</span>}
@@ -197,6 +254,13 @@ export default function MovieDetailClient({ movie, magnetResources, cloudResourc
     <CollectModal
       open={collectOpen}
       onClose={() => setCollectOpen(false)}
+      movieId={movie.id}
+      contentType="movie"
+      movieTitle={movie.title}
+    />
+    <WatchedModal
+      open={watchedOpen}
+      onClose={() => setWatchedOpen(false)}
       movieId={movie.id}
       contentType="movie"
       movieTitle={movie.title}

@@ -31,6 +31,7 @@ interface SearchResult {
   duration?: number;
   totalEpisode?: number;
   updatedAt?: string;
+  alias?: string;
 }
 
 const TYPE_FILTERS = [
@@ -121,30 +122,17 @@ function SearchContent() {
     }
   };
 
-  // Client-side sort + filter
   const filteredResults = useMemo(() => {
     let filtered = typeFilter ? results.filter(r => r.type === typeFilter) : [...results];
 
     if (sortBy !== 'latest') {
       filtered.sort((a, b) => {
         let cmp = 0;
-        if (sortBy === 'douban') {
-          cmp = (a.rating ?? 0) - (b.rating ?? 0);
-        } else if (sortBy === 'imdb') {
-          cmp = (a.ratingImdb ?? 0) - (b.ratingImdb ?? 0);
-        } else if (sortBy === 'rt') {
-          cmp = (a.ratingRT ?? 0) - (b.ratingRT ?? 0);
-        } else if (sortBy === 'year') {
-          cmp = (a.year ?? 0) - (b.year ?? 0);
-        }
+        if (sortBy === 'douban') cmp = (a.rating ?? 0) - (b.rating ?? 0);
+        else if (sortBy === 'imdb') cmp = (a.ratingImdb ?? 0) - (b.ratingImdb ?? 0);
+        else if (sortBy === 'rt') cmp = (a.ratingRT ?? 0) - (b.ratingRT ?? 0);
+        else if (sortBy === 'year') cmp = (a.year ?? 0) - (b.year ?? 0);
         return sortDir === 'desc' ? -cmp : cmp;
-      });
-    } else {
-      // Sort by updatedAt for "latest"
-      filtered.sort((a, b) => {
-        const aTime = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
-        const bTime = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
-        return sortDir === 'desc' ? bTime - aTime : aTime - bTime;
       });
     }
 
@@ -166,7 +154,6 @@ function SearchContent() {
       {/* Filters + Sort */}
       {searched && (
         <div className="flex flex-col gap-3">
-          {/* Type filters + result count */}
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>找到 <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{total}</span> 个结果</p>
             <div className="flex flex-wrap gap-1.5">
@@ -176,16 +163,12 @@ function SearchContent() {
                     backgroundColor: typeFilter === t.value ? 'var(--accent)' : 'var(--bg-card)',
                     color: typeFilter === t.value ? '#fff' : 'var(--text-secondary)',
                     border: typeFilter === t.value ? 'none' : '1px solid var(--border-color)',
-                    WebkitTapHighlightColor: 'transparent',
-                    touchAction: 'manipulation',
                   }}>
                   {t.label}
                 </button>
               ))}
             </div>
           </div>
-
-          {/* Sort controls */}
           <div className="flex items-center justify-end gap-2">
             <CustomSelect value={sortBy} options={SORT_OPTIONS} onChange={v => setSortBy(v)} />
             <SortDirButton direction={sortDir} onToggle={() => setSortDir(d => d === 'desc' ? 'asc' : 'desc')} />
@@ -207,11 +190,12 @@ function SearchContent() {
               const genreArr = parseJsonArr(item.genre);
               const directorArr = parseJsonArr(item.director);
               const actorArr = parseJsonArr(item.actor);
+              const aliasArr = parseJsonArr(item.alias);
               const regionStr = regionArr.join('/');
               const durationOrEp = item.type === 'movie' ? (item.duration ? `${item.duration}分钟` : '') : (item.totalEpisode ? `${item.totalEpisode}集` : '');
 
               return (
-                <Link key={`${item.type}-${item.id}`} href={href} prefetch={true} className="flex gap-3 md:gap-4 p-3 md:p-4 rounded-xl border transition-colors hover:shadow-md relative" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)', WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}>
+                <Link key={`${item.type}-${item.id}`} href={href} prefetch={true} className="flex gap-3 md:gap-4 p-3 md:p-4 rounded-xl border transition-colors hover:shadow-md relative" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}>
                   {/* Collect button */}
                   <button
                     onClick={(e) => {
@@ -235,9 +219,13 @@ function SearchContent() {
                   </div>
                   {/* Info */}
                   <div className="flex-1 min-w-0 flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-sm md:text-base line-clamp-1" style={{ color: 'var(--text-primary)' }}>{cleanTitleUtil(item.title)}</h3>
-                    </div>
+                    <h3 className="font-bold text-sm md:text-base line-clamp-1" style={{ color: 'var(--text-primary)' }}>{cleanTitleUtil(item.title)}</h3>
+                    {/* Alias */}
+                    {aliasArr.length > 0 && (
+                      <p className="text-[10px] md:text-xs truncate" style={{ color: 'var(--text-muted)' }}>
+                        {aliasArr.join(' / ')}
+                      </p>
+                    )}
                     {/* Ratings */}
                     <div className="flex items-center gap-2 flex-wrap">
                       {item.rating != null && <span className="text-[10px] md:text-xs font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor: '#fef2f2', color: '#dc2626' }}>豆瓣 {item.rating.toFixed(1)}</span>}
@@ -251,20 +239,20 @@ function SearchContent() {
                       {regionStr && <span>{regionStr}</span>}
                       {durationOrEp && <span>{durationOrEp}</span>}
                     </div>
-                    {/* Genre tags */}
+                    {/* Genre tags - rounded to match MovieCard */}
                     {genreArr.length > 0 && (
                       <div className="flex items-center gap-1 flex-wrap">
                         {genreArr.slice(0, 4).map((g, i) => (
-                          <span key={i} className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}>{g}</span>
+                          <span key={i} className="text-[10px] px-1.5 py-0.5 rounded" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}>{g}</span>
                         ))}
                       </div>
                     )}
                     {/* Director */}
-                    {directorArr.length > 0 && <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>导演: {directorArr.join(' / ')}</p>}
+                    {directorArr.length > 0 && <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}><span className="font-medium" style={{ color: 'var(--text-secondary)' }}>导演:</span> {directorArr.join(' / ')}</p>}
                     {/* Actor - PC only */}
-                    {actorArr.length > 0 && <p className="text-xs truncate hidden md:block" style={{ color: 'var(--text-muted)' }}>主演: {actorArr.slice(0,4).join(' / ')}</p>}
+                    {actorArr.length > 0 && <p className="text-xs truncate hidden md:block" style={{ color: 'var(--text-muted)' }}><span className="font-medium" style={{ color: 'var(--text-secondary)' }}>主演:</span> {actorArr.slice(0,4).join(' / ')}</p>}
                     {/* Summary - PC only */}
-                    {item.summary && <p className="text-xs line-clamp-2 mt-auto hidden md:block" style={{ color: 'var(--text-muted)' }}>{item.summary}</p>}
+                    {item.summary && <p className="text-xs line-clamp-2 mt-auto hidden md:block" style={{ color: 'var(--text-muted)' }}><span className="font-medium" style={{ color: 'var(--text-secondary)' }}>简介:</span> {item.summary}</p>}
                   </div>
                 </Link>
               );
