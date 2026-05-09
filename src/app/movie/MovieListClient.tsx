@@ -67,6 +67,7 @@ export default function MovieListClient({ initialItems, initialTotal, contentTyp
       if (y === '自定义' && yf && !yt) parts.push(`year=${encodeURIComponent(yf)}`);
       if (y === '自定义' && yf && yt) { parts.push(`yearFrom=${encodeURIComponent(yf)}`); parts.push(`yearTo=${encodeURIComponent(yt)}`); }
       if (s !== 'latest') parts.push(`sort=${encodeURIComponent(s)}`);
+      else parts.push('sort=latest');
       if (sortDir === 'asc') parts.push('sortDir=asc');
       const qs = parts.join('&');
       const res = await fetch(`${apiBase}?${qs}`);

@@ -9,6 +9,7 @@ import { listApi, type UserList, type UserListItem } from '@/lib/userApi';
 import Pagination from '@/components/Pagination';
 import CustomSelect from '@/components/CustomSelect';
 import SortDirButton from '@/components/SortDirButton';
+import { parseRegion, parseGenre, cleanTitle as cleanTitleUtil } from '@/lib/utils';
 import dynamic from 'next/dynamic';
 
 const NoteEditModal = dynamic(() => import('@/components/NoteEditModal'), { ssr: false });
@@ -27,6 +28,17 @@ const SORT_OPTIONS = [
   { label: '豆瓣评分', value: 'douban' },
   { label: '我的评分', value: 'userRating' },
 ];
+
+function parseJsonArr(val: string | string[] | undefined): string[] {
+  if (!val) return [];
+  if (Array.isArray(val)) return val;
+  try {
+    const parsed = JSON.parse(val);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
 
 export default function ListDetailPage() {
   const params = useParams();
@@ -99,15 +111,15 @@ export default function ListDetailPage() {
       await listApi.updateItem(listId, {
         movieId: noteEdit.item.movieId,
         contentType: noteEdit.item.contentType,
-        note,
+        note: note || undefined,
         rating,
       });
       // Update local state
       setItems(prev => prev.map(i =>
-        i.id === noteEdit.item.id ? { ...i, note, userRating: rating ?? i.userRating } : i
+        i.id === noteEdit.item.id ? { ...i, note: note || i.note, userRating: rating ?? i.userRating } : i
       ));
-    } catch {
-      // silent
+    } catch (err) {
+      console.error('Update item failed:', err);
     }
     setNoteEdit(null);
   };
@@ -189,7 +201,7 @@ export default function ListDetailPage() {
         </div>
       ) : (
         <>
-          {/* Grid layout - same as search results: PC 2 columns, mobile 1 column */}
+          {/* Grid layout - PC 2 columns, mobile 1 column */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             {sortedItems.map((item) => {
               const route = contentTypeRoute[item.contentType] || '/movie';
@@ -210,7 +222,7 @@ export default function ListDetailPage() {
                       className="h-8 px-3 rounded-lg text-xs font-medium text-white"
                       style={{ backgroundColor: 'var(--accent)' }}
                     >
-                      备注
+                      {isWatchedList ? '编辑' : '备注'}
                     </button>
                     <button
                       onClick={() => setConfirmDelete(item)}
@@ -221,7 +233,7 @@ export default function ListDetailPage() {
                     </button>
                   </div>
 
-                  {/* Card content */}
+                  {/* Card content - same style as search results */}
                   <div
                     className="flex gap-3 md:gap-4 p-3 md:p-4 rounded-xl border transition-all hover:shadow-md group relative"
                     style={{
@@ -233,7 +245,7 @@ export default function ListDetailPage() {
                   >
                     {/* Poster */}
                     <Link href={href} className="shrink-0">
-                      <div className="w-[80px] h-[110px] md:w-[100px] md:h-[140px] rounded-lg overflow-hidden">
+                      <div className="w-[80px] h-[110px] md:w-[110px] md:h-[150px] rounded-lg overflow-hidden">
                         <img
                           src={item.cover || fallbackCover(item.movieId)}
                           alt={item.title || ''}
@@ -243,52 +255,45 @@ export default function ListDetailPage() {
                       </div>
                     </Link>
 
-                    {/* Info - like search result card */}
-                    <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-                      <div>
-                        <Link href={href} className="font-bold text-sm md:text-base line-clamp-1 no-underline hover:text-[var(--accent)] transition-colors" style={{ color: 'var(--text-primary)' }}>
-                          {item.title || '未知标题'}
-                        </Link>
+                    {/* Info - match search results layout */}
+                    <div className="flex-1 min-w-0 flex flex-col gap-1">
+                      <Link href={href} className="font-bold text-sm md:text-base line-clamp-1 no-underline hover:text-[var(--accent)] transition-colors" style={{ color: 'var(--text-primary)' }}>
+                        {cleanTitleUtil(item.title) || '未知标题'}
+                      </Link>
 
-                        {/* Ratings row */}
-                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                          <span className="px-1.5 py-0.5 rounded text-[10px] md:text-xs" style={{ border: '1px solid var(--accent)', color: 'var(--accent)' }}>
-                            {typeLabel[item.contentType] || item.contentType}
+                      {/* Ratings */}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {item.rating && (
+                          <span className="text-[10px] md:text-xs font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor: '#fef2f2', color: '#dc2626' }}>
+                            豆瓣 {Number(item.rating).toFixed(1)}
                           </span>
-                          {item.year && <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{item.year}</span>}
-                          {item.rating && (
-                            <span className="text-[10px] md:text-xs font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor: '#fef2f2', color: '#dc2626' }}>
-                              豆瓣 {Number(item.rating).toFixed(1)}
-                            </span>
-                          )}
-                        </div>
-
+                        )}
                         {/* User rating - only for watched list */}
                         {isWatchedList && item.userRating != null && (
-                          <div className="flex items-center gap-1 mt-1.5">
-                            <span className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>我的评分</span>
-                            <div className="flex items-center gap-0.5">
-                              {[1,2,3,4,5].map(star => (
-                                <svg key={star} className="w-3 h-3" viewBox="0 0 24 24" fill={star <= Math.round(item.userRating / 2) ? '#f59e0b' : 'none'} stroke={star <= Math.round(item.userRating / 2) ? '#f59e0b' : 'var(--text-muted)'} strokeWidth="2">
-                                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                                </svg>
-                              ))}
-                              <span className="text-[10px] font-bold ml-0.5" style={{ color: 'var(--accent)' }}>{Number(item.userRating).toFixed(1)}</span>
-                            </div>
-                          </div>
+                          <span className="text-[10px] md:text-xs font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor: '#fefce8', color: '#ca8a04' }}>
+                            我的 {Number(item.userRating).toFixed(1)}
+                          </span>
                         )}
-
-                        {/* Note - styled specially */}
-                        {item.note ? (
-                          <div className="mt-1.5 flex items-start gap-1.5 p-1.5 rounded-lg" style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
-                            <svg className="w-3 h-3 mt-0.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
-                            <p className="text-[10px] md:text-xs italic line-clamp-2" style={{ color: 'var(--text-secondary)' }}>{item.note}</p>
-                          </div>
-                        ) : null}
                       </div>
 
+                      {/* Meta row */}
+                      <div className="flex items-center gap-2 flex-wrap text-xs" style={{ color: 'var(--text-muted)' }}>
+                        <span className="px-1.5 py-0.5 rounded text-[10px] md:text-xs" style={{ border: '1px solid var(--accent)', color: 'var(--accent)' }}>
+                          {typeLabel[item.contentType] || item.contentType}
+                        </span>
+                        {item.year && <span>{item.year}</span>}
+                      </div>
+
+                      {/* Note - styled specially */}
+                      {item.note ? (
+                        <div className="mt-1 flex items-start gap-1.5 p-1.5 rounded-lg" style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
+                          <svg className="w-3 h-3 mt-0.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                          <p className="text-[10px] md:text-xs italic line-clamp-2" style={{ color: 'var(--text-secondary)' }}>{item.note}</p>
+                        </div>
+                      ) : null}
+
                       {/* Bottom: time + actions */}
-                      <div className="flex items-center justify-between mt-2">
+                      <div className="flex items-center justify-between mt-auto pt-1">
                         {item.addedAt && (
                           <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
                             收藏于 {new Date(item.addedAt).toLocaleDateString('zh-CN')}
@@ -298,17 +303,25 @@ export default function ListDetailPage() {
                         <div className="hidden md:flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={() => setNoteEdit({ item, listId })}
-                            className="px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors"
-                            style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+                            className="w-6 h-6 rounded flex items-center justify-center transition-colors"
+                            style={{ color: 'var(--text-muted)' }}
+                            title={isWatchedList ? '编辑评分和感想' : '编辑备注'}
                           >
-                            {item.note ? '编辑备注' : '添加备注'}
+                            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                            </svg>
                           </button>
                           <button
                             onClick={() => setConfirmDelete(item)}
-                            className="px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors"
-                            style={{ borderColor: '#fecaca', color: '#ef4444' }}
+                            className="w-6 h-6 rounded flex items-center justify-center transition-colors hover:text-red-500"
+                            style={{ color: 'var(--text-muted)' }}
+                            title="移除"
                           >
-                            移除
+                            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="3 6 5 6 21 6" />
+                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                            </svg>
                           </button>
                         </div>
                       </div>

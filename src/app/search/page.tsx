@@ -263,6 +263,8 @@ function SearchContent() {
                     {directorArr.length > 0 && <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>导演: {directorArr.join(' / ')}</p>}
                     {/* Actor - PC only */}
                     {actorArr.length > 0 && <p className="text-xs truncate hidden md:block" style={{ color: 'var(--text-muted)' }}>主演: {actorArr.slice(0,4).join(' / ')}</p>}
+                    {/* Summary - PC only */}
+                    {item.summary && <p className="text-xs line-clamp-2 mt-auto hidden md:block" style={{ color: 'var(--text-muted)' }}>{item.summary}</p>}
                   </div>
                 </Link>
               );

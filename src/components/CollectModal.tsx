@@ -14,6 +14,12 @@ interface CollectModalProps {
   movieTitle?: string;
 }
 
+const DEFAULT_LISTS_CONFIG = [
+  { type: 'want_to_watch', label: '想看', icon: '🔖' },
+  { type: 'watching', label: '在看', icon: '👁️' },
+  { type: 'watched', label: '看过', icon: '✅' },
+];
+
 export default function CollectModal({ open, onClose, movieId, contentType, movieTitle }: CollectModalProps) {
   const router = useRouter();
   const { isAuthenticated } = useUserStore();
@@ -25,14 +31,24 @@ export default function CollectModal({ open, onClose, movieId, contentType, movi
   const [creating, setCreating] = useState(false);
   const [toggling, setToggling] = useState<number | null>(null);
 
+  // Pre-populated default lists (no API needed)
+  const defaultLists = DEFAULT_LISTS_CONFIG.map(d => {
+    const found = lists.find(l => l.type === d.type);
+    return {
+      ...d,
+      id: found?.id || 0,
+      itemCount: found?.itemCount || 0,
+      loaded: !!found,
+    };
+  });
+
+  const customLists = lists.filter(l => l.isDefault !== 1);
+
   const loadData = useCallback(async () => {
     if (!isAuthenticated) return;
     setLoading(true);
     try {
-      const [listsRes, statusRes] = await Promise.all([
-        listApi.getAll(),
-        listApi.getAll(), // We'll check each list for membership
-      ]);
+      const listsRes = await listApi.getAll();
       const allLists: UserList[] = listsRes.data.data || listsRes.data;
       setLists(allLists);
 
@@ -69,6 +85,7 @@ export default function CollectModal({ open, onClose, movieId, contentType, movi
       router.push(`/login?from=${encodeURIComponent(window.location.pathname)}`);
       return;
     }
+    if (!listId) return; // Not loaded yet
     setToggling(listId);
     const isCurrentlyIn = movieStatus[listId];
     try {
@@ -95,7 +112,6 @@ export default function CollectModal({ open, onClose, movieId, contentType, movi
       setMovieStatus((prev) => ({ ...prev, [newList.id]: false }));
       setNewName('');
       setShowCreate(false);
-      // Auto-add to new list
       await handleToggle(newList.id);
     } catch {
       // silent
@@ -105,6 +121,65 @@ export default function CollectModal({ open, onClose, movieId, contentType, movi
   };
 
   if (!open) return null;
+
+  const renderListButton = (listId: number, label: string, icon: string, itemCount: number, isLoaded: boolean) => {
+    const isIn = movieStatus[listId];
+    const isTogglingThis = toggling === listId;
+    return (
+      <button
+        key={label}
+        onClick={() => handleToggle(listId)}
+        disabled={isTogglingThis || !isLoaded}
+        className="w-full flex items-center justify-between p-3 rounded-lg mb-1.5 transition-colors text-left"
+        style={{
+          backgroundColor: isIn ? 'var(--accent-light, rgba(59,130,246,0.1))' : 'var(--bg-card)',
+          border: `1px solid ${isIn ? 'var(--accent)' : 'var(--border-color)'}`,
+          opacity: isTogglingThis || !isLoaded ? 0.6 : 1,
+        }}
+      >
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <span className="text-lg">{icon}</span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+              {label}
+            </p>
+            {isLoaded && (
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                {itemCount} 部
+              </p>
+            )}
+          </div>
+        </div>
+        {isTogglingThis ? (
+          <div
+            className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin shrink-0"
+            style={{ color: 'var(--accent)' }}
+          />
+        ) : isIn ? (
+          <svg
+            className="w-5 h-5 shrink-0"
+            style={{ color: 'var(--accent)' }}
+            viewBox="0 0 24 24"
+            fill="currentColor"
+          >
+            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+          </svg>
+        ) : (
+          <svg
+            className="w-5 h-5 shrink-0"
+            style={{ color: 'var(--text-muted)' }}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+        )}
+      </button>
+    );
+  };
 
   return (
     <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center">
@@ -164,67 +239,30 @@ export default function CollectModal({ open, onClose, movieId, contentType, movi
                 去登录
               </button>
             </div>
-          ) : loading ? (
-            <div className="space-y-2">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-14 rounded-lg animate-pulse" style={{ backgroundColor: 'var(--bg-card)' }} />
-              ))}
-            </div>
           ) : (
             <>
-              {lists.map((list) => {
-                const isIn = movieStatus[list.id];
-                const isTogglingThis = toggling === list.id;
-                return (
-                  <button
-                    key={list.id}
-                    onClick={() => handleToggle(list.id)}
-                    disabled={isTogglingThis}
-                    className="w-full flex items-center justify-between p-3 rounded-lg mb-1.5 transition-colors text-left"
-                    style={{
-                      backgroundColor: isIn ? 'var(--accent-light, rgba(59,130,246,0.1))' : 'var(--bg-card)',
-                      border: `1px solid ${isIn ? 'var(--accent)' : 'var(--border-color)'}`,
-                      opacity: isTogglingThis ? 0.6 : 1,
-                    }}
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
-                        {list.name}
-                      </p>
-                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                        {list.itemCount} 部
-                      </p>
-                    </div>
-                    {isTogglingThis ? (
-                      <div
-                        className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin shrink-0"
-                        style={{ color: 'var(--accent)' }}
-                      />
-                    ) : isIn ? (
-                      <svg
-                        className="w-5 h-5 shrink-0"
-                        style={{ color: 'var(--accent)' }}
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                      >
-                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
-                      </svg>
-                    ) : (
-                      <svg
-                        className="w-5 h-5 shrink-0"
-                        style={{ color: 'var(--text-muted)' }}
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                      >
-                        <line x1="12" y1="5" x2="12" y2="19" />
-                        <line x1="5" y1="12" x2="19" y2="12" />
-                      </svg>
-                    )}
-                  </button>
-                );
-              })}
+              {/* Default lists - always shown with icons */}
+              {defaultLists.map(d => renderListButton(d.id, d.label, d.icon, d.itemCount, d.loaded))}
+
+              {/* Divider */}
+              {customLists.length > 0 && (
+                <div className="flex items-center gap-2 my-3">
+                  <div className="flex-1 h-px" style={{ backgroundColor: 'var(--border-color)' }} />
+                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>自定义片单</span>
+                  <div className="flex-1 h-px" style={{ backgroundColor: 'var(--border-color)' }} />
+                </div>
+              )}
+
+              {/* Custom lists */}
+              {loading && customLists.length === 0 ? (
+                <div className="space-y-2">
+                  {[1, 2].map((i) => (
+                    <div key={i} className="h-12 rounded-lg animate-pulse" style={{ backgroundColor: 'var(--bg-card)' }} />
+                  ))}
+                </div>
+              ) : (
+                customLists.map((list) => renderListButton(list.id, list.name, '📋', list.itemCount, true))
+              )}
 
               {/* Create new list */}
               {showCreate ? (

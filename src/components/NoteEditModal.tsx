@@ -16,7 +16,6 @@ interface NoteEditModalProps {
 export default function NoteEditModal({ open, onClose, onSave, initialNote = '', initialRating, isWatchedList = false, movieTitle }: NoteEditModalProps) {
   const [note, setNote] = useState(initialNote);
   const [rating, setRating] = useState<number>(initialRating || 0);
-  const [hoverRating, setHoverRating] = useState<number>(0);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -43,6 +42,9 @@ export default function NoteEditModal({ open, onClose, onSave, initialNote = '',
 
   const placeholder = placeholders[Math.floor(Math.random() * placeholders.length)];
 
+  // 10-point rating with 0.5 step
+  const ratingLabels = ['', '很差', '较差', '一般', '还行', '中等', '较好', '良好', '优秀', '神作', '满分'];
+
   return (
     <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center">
       {/* Backdrop */}
@@ -51,13 +53,13 @@ export default function NoteEditModal({ open, onClose, onSave, initialNote = '',
       {/* Modal */}
       <div
         className="relative w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border flex flex-col"
-        style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)', maxHeight: '70vh' }}
+        style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)', maxHeight: '75vh' }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b shrink-0" style={{ borderColor: 'var(--border-color)' }}>
           <div className="min-w-0 flex-1">
             <h3 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>
-              {initialNote ? '编辑备注' : '添加备注'}
+              {isWatchedList ? '编辑' : '备注'}
             </h3>
             {movieTitle && (
               <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>{movieTitle}</p>
@@ -68,45 +70,43 @@ export default function NoteEditModal({ open, onClose, onSave, initialNote = '',
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-4">
-          {/* Rating - only for watched list */}
+          {/* Rating - only for watched list, 10-point scale with 0.5 step */}
           {isWatchedList && (
             <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>我的评分</label>
-              <div className="flex items-center gap-1">
-                {[1, 2, 3, 4, 5].map(star => (
-                  <button
-                    key={star}
-                    type="button"
-                    onMouseEnter={() => setHoverRating(star)}
-                    onMouseLeave={() => setHoverRating(0)}
-                    onClick={() => setRating(star === rating ? 0 : star)}
-                    className="p-0.5 transition-transform hover:scale-110"
-                  >
-                    <svg
-                      className="w-7 h-7"
-                      viewBox="0 0 24 24"
-                      fill={(hoverRating || rating) >= star ? '#f59e0b' : 'none'}
-                      stroke={(hoverRating || rating) >= star ? '#f59e0b' : 'var(--text-muted)'}
-                      strokeWidth="2"
-                    >
-                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                    </svg>
-                  </button>
-                ))}
-                {rating > 0 && (
-                  <span className="text-sm font-bold ml-2" style={{ color: 'var(--accent)' }}>{rating}/10</span>
-                )}
-                {rating > 0 && (
-                  <button onClick={() => setRating(0)} className="text-xs ml-2" style={{ color: 'var(--text-muted)' }}>清除</button>
-                )}
+              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>评分</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="range"
+                  min="1"
+                  max="10"
+                  step="0.5"
+                  value={rating}
+                  onChange={(e) => setRating(Number(e.target.value))}
+                  className="flex-1 h-2 rounded-lg appearance-none cursor-pointer"
+                  style={{ accentColor: 'var(--accent)' }}
+                />
+                <div className="flex items-center gap-1 min-w-[60px]">
+                  <span className="text-lg font-bold" style={{ color: rating > 0 ? 'var(--accent)' : 'var(--text-muted)' }}>
+                    {rating > 0 ? rating.toFixed(1) : '-'}
+                  </span>
+                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>/10</span>
+                </div>
               </div>
+              {rating > 0 && (
+                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+                  {ratingLabels[Math.ceil(rating)] || ''}
+                </p>
+              )}
+              {rating > 0 && (
+                <button onClick={() => setRating(0)} className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>清除评分</button>
+              )}
             </div>
           )}
 
           {/* Note input */}
           <div>
             <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
-              {isWatchedList ? '观后感' : '备注'}
+              {isWatchedList ? '感想' : '备注'}
             </label>
             <textarea
               value={note}

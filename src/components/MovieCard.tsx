@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { parseRegion, parseGenre, cleanTitle as cleanTitleUtil } from '@/lib/utils';
 import { useUserStore } from '@/stores/userStore';
 import { listApi } from '@/lib/userApi';
@@ -25,6 +25,9 @@ interface MovieCardProps {
   href: string;
   showCollect?: boolean;
 }
+
+// Cache want_to_watch list ID globally
+let wantListCache: { id: number; loaded: boolean } = { id: 0, loaded: false };
 
 export default function MovieCard({
   id,
@@ -49,18 +52,37 @@ export default function MovieCard({
   const contentType = type || 'movie';
   const clickTimer = useRef<NodeJS.Timeout | null>(null);
 
-  // Single click: add to want_to_watch
+  // Load want_to_watch list ID on mount
+  useEffect(() => {
+    if (!isAuthenticated || wantListCache.loaded) return;
+    listApi.getAll().then(res => {
+      const lists = res.data.data || res.data;
+      const wantList = Array.isArray(lists) ? lists.find((l: any) => l.type === 'want_to_watch') : null;
+      if (wantList) {
+        wantListCache = { id: wantList.id, loaded: true };
+      }
+    }).catch(() => {});
+  }, [isAuthenticated]);
+
+  // Single click: add to want_to_watch directly (no modal, no confirmation)
   const handleSingleClick = useCallback(async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (!isAuthenticated || toggling) return;
     setToggling(true);
     try {
-      const res = await listApi.getAll();
-      const lists = res.data.data || res.data;
-      const wantList = Array.isArray(lists) ? lists.find((l: any) => l.type === 'want_to_watch') : null;
-      if (wantList) {
-        await listApi.addItem(wantList.id, { movieId: id, contentType });
+      let listId = wantListCache.id;
+      if (!listId) {
+        const res = await listApi.getAll();
+        const lists = res.data.data || res.data;
+        const wantList = Array.isArray(lists) ? lists.find((l: any) => l.type === 'want_to_watch') : null;
+        if (wantList) {
+          listId = wantList.id;
+          wantListCache = { id: wantList.id, loaded: true };
+        }
+      }
+      if (listId) {
+        await listApi.addItem(listId, { movieId: id, contentType });
         setAdded(true);
       }
     } catch {
@@ -75,10 +97,12 @@ export default function MovieCard({
     e.preventDefault();
     e.stopPropagation();
     if (clickTimer.current) {
+      // Double click → open modal
       clearTimeout(clickTimer.current);
       clickTimer.current = null;
       setCollectOpen(true);
     } else {
+      // Single click → add to want_to_watch directly
       clickTimer.current = setTimeout(() => {
         clickTimer.current = null;
         handleSingleClick(e);
@@ -93,7 +117,6 @@ export default function MovieCard({
   const cleanTitle = cleanTitleUtil(title);
   const fallbackCover = `https://picsum.photos/seed/${id}/300/450`;
 
-  // Duration or episode badge text
   let badgeText = '';
   if (type === 'movie' && duration) {
     badgeText = `${duration}分钟`;
@@ -126,7 +149,6 @@ export default function MovieCard({
           transition: 'opacity 0.15s ease',
         }}
       >
-        {/* Navigation loading overlay */}
         {navigating && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/20 backdrop-blur-[1px]">
             <div
@@ -144,7 +166,6 @@ export default function MovieCard({
             className="w-full h-full object-cover img-zoom"
             loading="lazy"
           />
-          {/* Rating badge - top right */}
           {rating != null && (
             <span
               className="absolute top-2 right-2 px-1.5 py-0.5 rounded text-xs font-bold text-white"
@@ -153,7 +174,6 @@ export default function MovieCard({
               {rating.toFixed(1)}
             </span>
           )}
-          {/* Collect button - top left */}
           {showCollect && (
             <button
               onClick={handleCollectClick}
@@ -173,7 +193,6 @@ export default function MovieCard({
               )}
             </button>
           )}
-          {/* Status badge */}
           {status && (
             <span
               className="absolute top-2 left-2 px-1.5 py-0.5 rounded text-xs font-medium text-white"
@@ -189,7 +208,6 @@ export default function MovieCard({
               {status}
             </span>
           )}
-          {/* Duration/Episode badge */}
           {badgeText && (
             <span className="absolute bottom-2 right-2 px-2 py-0.5 rounded text-xs font-medium text-white bg-black/60 backdrop-blur-sm">
               {badgeText}
@@ -197,9 +215,8 @@ export default function MovieCard({
           )}
         </div>
 
-        {/* Info section - fixed height for uniform cards */}
+        {/* Info */}
         <div className="p-2 md:p-3 flex flex-col gap-1" style={{ minHeight: '72px' }}>
-          {/* Title: always 1 line, truncate */}
           <p
             className="font-medium text-xs md:text-sm truncate min-w-0 group-hover:text-[var(--accent)] transition-colors"
             style={{ color: 'var(--text-primary)' }}
@@ -207,7 +224,6 @@ export default function MovieCard({
             {cleanTitle || '\u00A0'}
           </p>
 
-          {/* Rating + Year + Region in compact row */}
           <div className="flex items-center gap-1 flex-wrap">
             {rating != null ? (
               <span className="text-[10px] md:text-xs font-semibold" style={{ color: 'var(--accent)' }}>
@@ -226,7 +242,6 @@ export default function MovieCard({
             ) : null}
           </div>
 
-          {/* Genre tags - show as many as fit */}
           {genreArr.length > 0 ? (
             <div className="flex items-center gap-1 flex-wrap overflow-hidden" style={{ maxHeight: '22px' }}>
               {genreArr.map((g, i) => (
