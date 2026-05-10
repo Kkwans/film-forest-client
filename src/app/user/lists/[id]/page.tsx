@@ -273,8 +273,8 @@ export default function ListDetailPage() {
                   </div>
                   {/* Card wrapper that slides */}
                   <div className="flex flex-col" style={{ transform: isSwiped ? 'translateX(-120px)' : 'translateX(0)', transition: 'transform 0.2s ease', position: 'relative', zIndex: 1 }}>
-                  {/* Main card */}
-                  <div className="flex gap-3 md:gap-4 p-3 md:p-4 rounded-xl border transition-all hover:shadow-md group"
+                  {/* Main card - remove bottom radius when note card exists */}
+                  <div className={`flex gap-3 md:gap-4 p-3 md:p-4 border transition-all hover:shadow-md group ${(hasNote || hasRating) ? 'rounded-t-xl rounded-b-none' : 'rounded-xl'}`}
                     style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}>
 
                     <Link href={href} className="shrink-0">
@@ -321,25 +321,35 @@ export default function ListDetailPage() {
                     </div>
                   </div>
 
-                  {/* Note hook card - attached below the main card */}
+                  {/* Note hook card - attached below */}
                   {(hasNote || hasRating) && (
-                    <div className="mx-0 -mt-px px-3 py-2 text-xs relative" style={{ backgroundColor: 'var(--bg-primary)', borderRadius: '0 0 12px 12px', border: '1px solid var(--border-color)', borderTop: 'none' }}>
-                      {/* Edit button */}
+                    <div className="mx-0 -mt-px px-3 py-2.5 text-xs relative" style={{ backgroundColor: '#f8f9fa', borderRadius: '0 0 12px 12px', border: '1px solid var(--border-color)', borderTop: '1px solid var(--border-color)' }}>
                       <button onClick={() => setNoteEdit({ item, listId })} className="absolute top-2 right-2 w-5 h-5 rounded flex items-center justify-center transition-colors hover:opacity-70" style={{ color: 'var(--text-muted)' }} title={isWatchedList ? '编辑评分和感想' : '编辑备注'}>
-                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                       </button>
                       <div className="pr-6">
-                        {/* Line 1: time + rating */}
+                        {/* Line 1: time label + rating stars + score */}
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span style={{ color: 'var(--text-muted)' }}>{formatTimeWithLabel(item.addedAt || '', listType)}</span>
+                          <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{formatTimeWithLabel(item.addedAt || '', listType)}</span>
                           {hasRating && (
-                            <span className="font-semibold" style={{ color: getRatingStyle(Number(item.userRating)).color }}>
-                              {Number(item.userRating).toFixed(1)}分
-                            </span>
+                            <>
+                              <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>|</span>
+                              <span className="text-[10px] font-medium" style={{ color: getRatingStyle(Number(item.userRating)).color }}>{getRatingLabel(Number(item.userRating))}</span>
+                              <span className="inline-flex items-center gap-px">
+                                {Array.from({ length: 10 }, (_, si) => (
+                                  <svg key={si} width="10" height="10" viewBox="0 0 24 24">
+                                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+                                      fill={si < Math.round(Number(item.userRating)) ? getRatingStyle(Number(item.userRating)).color : 'none'}
+                                      stroke={getRatingStyle(Number(item.userRating)).color} strokeWidth="2" />
+                                  </svg>
+                                ))}
+                              </span>
+                              <span className="text-[11px] font-bold" style={{ color: getRatingStyle(Number(item.userRating)).color }}>{Number(item.userRating).toFixed(1)}分</span>
+                            </>
                           )}
                         </div>
                         {/* Line 2: note content */}
-                        {hasNote && <p className="mt-0.5 line-clamp-2" style={{ color: 'var(--text-secondary)' }}>{item.note}</p>}
+                        {hasNote && <p className="mt-1.5 line-clamp-2 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{item.note}</p>}
                       </div>
                     </div>
                   )}
