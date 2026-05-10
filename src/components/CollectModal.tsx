@@ -41,6 +41,26 @@ export default function CollectModal({ open, onClose, movieId, contentType, movi
 
   const customLists = lists.filter(l => l.isDefault !== 1);
 
+  // Determine which default list the movie is currently in
+  const getCurrentDefaultType = (): string | null => {
+    for (const d of defaultLists) {
+      if (d.id && movieStatus[d.id]) return d.type;
+    }
+    return null;
+  };
+  const currentDefaultType = getCurrentDefaultType();
+
+  // Mutual exclusion: determine if a default list button should be disabled
+  const isDefaultDisabled = (type: string): boolean => {
+    if (!currentDefaultType) return false;
+    if (currentDefaultType === type) return false; // Can always toggle off
+    // watched blocks want_to_watch and watching
+    if (currentDefaultType === 'watched') return type === 'want_to_watch' || type === 'watching';
+    // watching blocks want_to_watch
+    if (currentDefaultType === 'watching') return type === 'want_to_watch';
+    return false;
+  };
+
   const loadData = useCallback(async () => {
     if (!isAuthenticated) return;
     setLoading(true);
@@ -165,22 +185,25 @@ export default function CollectModal({ open, onClose, movieId, contentType, movi
                 {defaultLists.map(d => {
                   const isIn = movieStatus[d.id];
                   const isTogglingThis = toggling === d.id;
+                  const disabled = isDefaultDisabled(d.type) || isTogglingThis || !d.loaded;
                   return (
                     <button
                       key={d.label}
                       onClick={() => {
+                        if (disabled) return;
                         if (showNoteInput === d.id) {
                           handleToggle(d.id, addNote);
                         } else {
                           handleToggle(d.id);
                         }
                       }}
-                      disabled={isTogglingThis || !d.loaded}
+                      disabled={disabled}
                       className="flex flex-col items-center gap-1.5 p-3 rounded-lg border transition-colors"
                       style={{
                         backgroundColor: isIn ? 'var(--accent-light, rgba(59,130,246,0.1))' : 'var(--bg-card)',
                         borderColor: isIn ? 'var(--accent)' : 'var(--border-color)',
-                        opacity: isTogglingThis || !d.loaded ? 0.6 : 1,
+                        opacity: disabled ? 0.4 : 1,
+                        cursor: disabled ? 'not-allowed' : 'pointer',
                       }}
                     >
                       <span className="text-xl">{d.icon}</span>

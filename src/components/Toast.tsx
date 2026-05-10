@@ -54,14 +54,14 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      {/* Toast container - top center */}
-      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[200] flex flex-col gap-2 pointer-events-none">
+      {/* Toast container - top center, use flexbox centering instead of translate */}
+      <div className="fixed top-4 left-0 right-0 z-[200] flex flex-col items-center gap-2 pointer-events-none">
         {toasts.map(toast => {
           const config = TOAST_CONFIG[toast.type || 'info'];
           return (
             <div
               key={toast.id}
-              className="flex items-center gap-2.5 px-4 py-3 rounded-xl text-sm font-medium shadow-lg backdrop-blur-sm animate-slide-down pointer-events-auto"
+              className="flex items-center gap-2.5 px-4 py-3 rounded-xl text-sm font-medium shadow-lg backdrop-blur-sm animate-toast-in pointer-events-auto"
               style={{
                 background: config.bg,
                 color: '#fff',
@@ -79,12 +79,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         })}
       </div>
       <style jsx global>{`
-        @keyframes slide-down {
-          from { opacity: 0; transform: translate(-50%, -16px); }
-          to { opacity: 1; transform: translate(-50%, 0); }
+        @keyframes toast-in {
+          from { opacity: 0; transform: translateY(-12px); }
+          to { opacity: 1; transform: translateY(0); }
         }
-        .animate-slide-down {
-          animation: slide-down 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        .animate-toast-in {
+          animation: toast-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
       `}</style>
     </ToastContext.Provider>

@@ -4,7 +4,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useUserStore } from '@/stores/userStore';
+import { useUserStore, hasStoredToken } from '@/stores/userStore';
 import { listApi, type UserList, type UserListItem } from '@/lib/userApi';
 import Pagination from '@/components/Pagination';
 import CustomSelect from '@/components/CustomSelect';
@@ -125,7 +125,7 @@ function getRatingLabel(rating: number): string {
 export default function ListDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { isAuthenticated, _hydrated } = useUserStore();
+  const { isAuthenticated } = useUserStore();
   const listId = Number(params.id);
 
   const [list, setList] = useState<UserList | null>(null);
@@ -147,10 +147,9 @@ export default function ListDetailPage() {
   const listType = list?.type || 'custom';
 
   useEffect(() => {
-    if (!_hydrated) return;  // Wait for store to rehydrate
-    if (!isAuthenticated) { router.replace('/login?from=/user/lists/' + listId); return; }
+    if (!hasStoredToken()) { router.replace('/login?from=/user/lists/' + listId); return; }
     loadList(1);
-  }, [isAuthenticated, _hydrated, listId]);
+  }, [listId]);
 
   useEffect(() => {
     if (isAuthenticated && listId) loadList(1);
@@ -200,8 +199,7 @@ export default function ListDetailPage() {
 
   const filteredItems = typeFilter ? items.filter(i => i.contentType === typeFilter) : items;
 
-  if (!_hydrated) return <div className="flex items-center justify-center py-16"><div className="w-8 h-8 border-2 border-current border-t-transparent rounded-full animate-spin" style={{ color: 'var(--accent)' }} /></div>;
-  if (!isAuthenticated) return null;
+  if (!hasStoredToken()) return null;
 
   const isWatchedList = listType === 'watched';
   const fallbackCover = (id: number) => `https://picsum.photos/seed/${id}/120/180`;

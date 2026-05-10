@@ -8,7 +8,6 @@ interface UserState {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  _hydrated: boolean;  // true after zustand persist rehydration completes
 
   login: (username: string, password: string) => Promise<void>;
   register: (username: string, password: string, email?: string) => Promise<void>;
@@ -24,12 +23,10 @@ export const useUserStore = create<UserState>()(
       token: null,
       isAuthenticated: false,
       isLoading: false,
-      _hydrated: false,
 
       login: async (username, password) => {
         const res = await userApi.login({ username, password });
         const body = res.data;
-        // API returns HTTP 200 even on failure, check code field
         if (body.code && body.code !== 200) {
           throw new Error(body.message || '登录失败');
         }
@@ -41,7 +38,7 @@ export const useUserStore = create<UserState>()(
         set({ user, token, isAuthenticated: true });
       },
 
-      register: async (username, password, email) => {
+      register: async (username, password, email?) => {
         const res = await userApi.register({ username, password, email });
         const { token, user } = res.data.data || res.data;
         localStorage.setItem('ff_token', token);
@@ -62,7 +59,6 @@ export const useUserStore = create<UserState>()(
           const user = res.data.data || res.data;
           set({ user, isAuthenticated: true, isLoading: false });
         } catch {
-          // Token invalid
           localStorage.removeItem('ff_token');
           set({ user: null, token: null, isAuthenticated: false, isLoading: false });
         }
@@ -74,15 +70,20 @@ export const useUserStore = create<UserState>()(
       name: 'ff-user',
       partialize: (state) => ({ token: state.token, user: state.user }),
       onRehydrateStorage: () => (state) => {
-        // After rehydration, validate token and mark hydrated
         if (state?.token) {
           state.isAuthenticated = true;
           state.fetchMe();
         }
-        state?._hydrated && (state._hydrated = true);
-        // Always set hydrated after rehydration attempt
-        if (state) state._hydrated = true;
       },
     },
   ),
 );
+
+/**
+ * Check if user has a stored token (for auth guards).
+ * This avoids the zustand persist rehydration race condition.
+ */
+export function hasStoredToken(): boolean {
+  if (typeof window === 'undefined') return false;
+  return !!localStorage.getItem('ff_token');
+}

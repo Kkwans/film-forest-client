@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useUserStore } from '@/stores/userStore';
+import { useUserStore, hasStoredToken } from '@/stores/userStore';
 import { listApi, type UserList } from '@/lib/userApi';
 
 const DEFAULT_LISTS = [
@@ -15,7 +15,7 @@ const DEFAULT_LISTS = [
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, isAuthenticated, logout, _hydrated } = useUserStore();
+  const { user, isAuthenticated, logout } = useUserStore();
   const [lists, setLists] = useState<UserList[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -24,13 +24,13 @@ export default function ProfilePage() {
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
-    if (!_hydrated) return;  // Wait for store to rehydrate
-    if (!isAuthenticated) {
+    // Check localStorage directly to avoid rehydration race condition
+    if (!hasStoredToken()) {
       router.replace('/login?from=/profile');
       return;
     }
     loadLists();
-  }, [isAuthenticated, _hydrated]);
+  }, []);
 
   const loadLists = async () => {
     setLoading(true);
@@ -80,8 +80,7 @@ export default function ProfilePage() {
     return defaultLists.find((l) => l.name === d.apiName);
   };
 
-  if (!_hydrated) return <div className="flex items-center justify-center py-16"><div className="w-8 h-8 border-2 border-current border-t-transparent rounded-full animate-spin" style={{ color: 'var(--accent)' }} /></div>;
-  if (!isAuthenticated) return null;
+  if (!hasStoredToken()) return null;
 
   return (
     <div className="flex flex-col gap-6">

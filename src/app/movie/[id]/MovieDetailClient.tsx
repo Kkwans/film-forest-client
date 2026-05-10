@@ -26,7 +26,8 @@ interface MovieStatus {
   watching?: boolean;
   watched?: boolean;
   watchedRating?: number;
-  listId?: number; // watched list item id for editing
+  watchedNote?: string;
+  listId?: number;
 }
 
 export default function MovieDetailClient({ movie, magnetResources, cloudResources }: {
@@ -38,13 +39,15 @@ export default function MovieDetailClient({ movie, magnetResources, cloudResourc
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const [collectOpen, setCollectOpen] = useState(false);
   const [watchedOpen, setWatchedOpen] = useState(false);
+  const [watchedReadOnly, setWatchedReadOnly] = useState(false);
   const [movieStatus, setMovieStatus] = useState<MovieStatus>({});
   const [statusLoading, setStatusLoading] = useState(false);
   const isAuthenticated = useUserStore((s) => s.isAuthenticated);
   const { showToast } = useToast();
+  const wantClickTimer = useRef<NodeJS.Timeout | null>(null);
 
-  // Fetch movie status on mount
-  useEffect(() => {
+  // Fetch movie status
+  const fetchStatus = useCallback(() => {
     if (!isAuthenticated) return;
     setStatusLoading(true);
     statusApi.get(movie.id, 'movie').then(res => {
@@ -58,7 +61,7 @@ export default function MovieDetailClient({ movie, magnetResources, cloudResourc
             if (item.type === 'watched') {
               status.watched = true;
               if (item.userRating) status.watchedRating = Number(item.userRating);
-              if (item.listId) status.listId = item.listId;
+              if (item.note) status.watchedNote = item.note;
             }
           }
         });
@@ -67,32 +70,44 @@ export default function MovieDetailClient({ movie, magnetResources, cloudResourc
     }).catch(() => {}).finally(() => setStatusLoading(false));
   }, [isAuthenticated, movie.id]);
 
-  // Handle want_to_watch single click
+  useEffect(() => { fetchStatus(); }, [fetchStatus]);
+
+  // Handle want_to_watch: toggle on/off
   const handleWantClick = useCallback(async () => {
     if (!isAuthenticated) return;
-    if (movieStatus.want_to_watch) {
-      showToast('该影片已在想看片单中', 'warning');
-      return;
-    }
-    if (movieStatus.watching) {
-      showToast('该影片已被标记为在看', 'warning');
-      return;
-    }
-    if (movieStatus.watched) {
-      showToast('该影片已被标记为看过', 'warning');
-      return;
-    }
+    if (movieStatus.watching) { showToast('该影片已被标记为在看', 'warning'); return; }
+    if (movieStatus.watched) { showToast('该影片已被标记为看过', 'warning'); return; }
     try {
       const res = await listApi.getAll();
       const lists = res.data.data || res.data;
       const wantList = Array.isArray(lists) ? lists.find((l: any) => l.type === 'want_to_watch') : null;
-      if (wantList) {
+      if (!wantList) return;
+      if (movieStatus.want_to_watch) {
+        await listApi.removeItem(wantList.id, { movieId: movie.id, contentType: 'movie' });
+        setMovieStatus(prev => ({ ...prev, want_to_watch: false }));
+        showToast('已从想看移除', 'success');
+      } else {
         await listApi.addItem(wantList.id, { movieId: movie.id, contentType: 'movie' });
         setMovieStatus(prev => ({ ...prev, want_to_watch: true }));
         showToast('已加入想看', 'success');
       }
     } catch {}
   }, [isAuthenticated, movieStatus, movie.id, showToast]);
+
+  // Want button: single click = toggle, double click = open modal
+  const handleWantButtonClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    if (wantClickTimer.current) {
+      clearTimeout(wantClickTimer.current);
+      wantClickTimer.current = null;
+      setCollectOpen(true);
+    } else {
+      wantClickTimer.current = setTimeout(() => {
+        wantClickTimer.current = null;
+        handleWantClick();
+      }, 250);
+    }
+  }, [handleWantClick]);
 
   // Determine which button to show
   const getStatusDisplay = () => {
@@ -204,12 +219,10 @@ export default function MovieDetailClient({ movie, magnetResources, cloudResourc
                   <span>收藏</span>
                 </button>
                 <button
-                  onClick={() => {
-                    // Open watched modal in edit mode
-                    setWatchedOpen(true);
-                  }}
+                  onClick={() => { setWatchedReadOnly(true); setWatchedOpen(true); }}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-white transition-colors"
                   style={{ backgroundColor: '#22c55e' }}
+                  title="点击查看评价"
                 >
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
@@ -250,9 +263,10 @@ export default function MovieDetailClient({ movie, magnetResources, cloudResourc
               /* Want to watch: show 收藏 + 看过 */
               <>
                 <button
-                  onClick={() => showToast('该影片已在想看片单中', 'warning')}
+                  onClick={handleWantButtonClick}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border transition-colors"
                   style={{ borderColor: '#f59e0b', color: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.08)' }}
+                  title="单击取消想看，双击选择片单"
                 >
                   <span>🔖</span>
                   <span>已想看</span>
@@ -440,10 +454,14 @@ export default function MovieDetailClient({ movie, magnetResources, cloudResourc
     />
     <WatchedModal
       open={watchedOpen}
-      onClose={() => setWatchedOpen(false)}
+      onClose={() => { setWatchedOpen(false); setWatchedReadOnly(false); fetchStatus(); }}
       movieId={movie.id}
       contentType="movie"
       movieTitle={movie.title}
+      initialRating={watchedReadOnly ? movieStatus.watchedRating : undefined}
+      initialNote={watchedReadOnly ? movieStatus.watchedNote : undefined}
+      isReadOnly={watchedReadOnly}
+      onEdit={() => setWatchedReadOnly(false)}
     />
     </>
   );
