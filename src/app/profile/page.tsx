@@ -15,7 +15,7 @@ const DEFAULT_LISTS = [
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, isAuthenticated, logout } = useUserStore();
+  const { user, isAuthenticated, logout, _hydrated } = useUserStore();
   const [lists, setLists] = useState<UserList[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -24,12 +24,13 @@ export default function ProfilePage() {
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
+    if (!_hydrated) return;  // Wait for store to rehydrate
     if (!isAuthenticated) {
       router.replace('/login?from=/profile');
       return;
     }
     loadLists();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, _hydrated]);
 
   const loadLists = async () => {
     setLoading(true);
@@ -79,6 +80,7 @@ export default function ProfilePage() {
     return defaultLists.find((l) => l.name === d.apiName);
   };
 
+  if (!_hydrated) return <div className="flex items-center justify-center py-16"><div className="w-8 h-8 border-2 border-current border-t-transparent rounded-full animate-spin" style={{ color: 'var(--accent)' }} /></div>;
   if (!isAuthenticated) return null;
 
   return (

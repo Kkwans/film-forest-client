@@ -8,6 +8,7 @@ interface UserState {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  _hydrated: boolean;  // true after zustand persist rehydration completes
 
   login: (username: string, password: string) => Promise<void>;
   register: (username: string, password: string, email?: string) => Promise<void>;
@@ -23,6 +24,7 @@ export const useUserStore = create<UserState>()(
       token: null,
       isAuthenticated: false,
       isLoading: false,
+      _hydrated: false,
 
       login: async (username, password) => {
         const res = await userApi.login({ username, password });
@@ -72,11 +74,14 @@ export const useUserStore = create<UserState>()(
       name: 'ff-user',
       partialize: (state) => ({ token: state.token, user: state.user }),
       onRehydrateStorage: () => (state) => {
-        // After rehydration, validate token
+        // After rehydration, validate token and mark hydrated
         if (state?.token) {
           state.isAuthenticated = true;
           state.fetchMe();
         }
+        state?._hydrated && (state._hydrated = true);
+        // Always set hydrated after rehydration attempt
+        if (state) state._hydrated = true;
       },
     },
   ),

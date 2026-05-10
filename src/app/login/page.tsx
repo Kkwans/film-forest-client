@@ -5,6 +5,7 @@ import { useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useUserStore } from '@/stores/userStore';
+import { useToast } from '@/components/Toast';
 import { Suspense } from 'react';
 
 function LoginForm() {
@@ -12,6 +13,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const from = searchParams.get('from') || '/';
   const login = useUserStore((s) => s.login);
+  const { showToast } = useToast();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -36,6 +38,7 @@ function LoginForm() {
     setLoading(true);
     try {
       await login(username.trim(), password);
+      showToast('登录成功，欢迎回来', 'success');
       router.replace(from);
     } catch (err: any) {
       setError(err.message || '登录失败，请检查用户名和密码');

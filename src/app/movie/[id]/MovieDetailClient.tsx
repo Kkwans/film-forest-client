@@ -26,6 +26,7 @@ interface MovieStatus {
   watching?: boolean;
   watched?: boolean;
   watchedRating?: number;
+  listId?: number; // watched list item id for editing
 }
 
 export default function MovieDetailClient({ movie, magnetResources, cloudResources }: {
@@ -56,8 +57,8 @@ export default function MovieDetailClient({ movie, magnetResources, cloudResourc
             if (item.type === 'watching') status.watching = true;
             if (item.type === 'watched') {
               status.watched = true;
-              // Try to get rating from the item
-              // Note: we'd need to fetch items to get rating, but for now just mark as watched
+              if (item.userRating) status.watchedRating = Number(item.userRating);
+              if (item.listId) status.listId = item.listId;
             }
           }
         });
@@ -188,49 +189,112 @@ export default function MovieDetailClient({ movie, magnetResources, cloudResourc
 
           {/* Action buttons */}
           <div className="flex items-center gap-2">
-            {statusDisplay ? (
-              <button
-                onClick={() => showToast(`该影片已被标记为${statusDisplay.label}`, 'warning')}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border transition-colors"
-                style={{ borderColor: statusDisplay.color, color: statusDisplay.color, backgroundColor: `${statusDisplay.color}15` }}
-              >
-                <span>{statusDisplay.icon}</span>
-                <span>{statusDisplay.label}</span>
-              </button>
+            {movieStatus.watched ? (
+              /* Already watched: show 收藏 + 看过评分 */
+              <>
+                <button
+                  onClick={() => setCollectOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border transition-colors"
+                  style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+                  title="选择片单"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                  </svg>
+                  <span>收藏</span>
+                </button>
+                <button
+                  onClick={() => {
+                    // Open watched modal in edit mode
+                    setWatchedOpen(true);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-white transition-colors"
+                  style={{ backgroundColor: '#22c55e' }}
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                  </svg>
+                  <span>已看过</span>
+                  {movieStatus.watchedRating != null && movieStatus.watchedRating > 0 && (
+                    <span className="ml-1 px-1.5 py-0.5 rounded text-xs font-bold" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}>
+                      {movieStatus.watchedRating.toFixed(1)}
+                    </span>
+                  )}
+                </button>
+              </>
+            ) : movieStatus.watching ? (
+              /* Watching: show 收藏 + 看过 */
+              <>
+                <button
+                  onClick={() => setCollectOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border transition-colors"
+                  style={{ borderColor: '#3b82f6', color: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.08)' }}
+                >
+                  <span>👁️</span>
+                  <span>在看</span>
+                </button>
+                <button
+                  onClick={() => setWatchedOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-white transition-colors"
+                  style={{ backgroundColor: 'var(--accent)' }}
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                  </svg>
+                  <span>看过</span>
+                </button>
+              </>
+            ) : movieStatus.want_to_watch ? (
+              /* Want to watch: show 收藏 + 看过 */
+              <>
+                <button
+                  onClick={() => showToast('该影片已在想看片单中', 'warning')}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border transition-colors"
+                  style={{ borderColor: '#f59e0b', color: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.08)' }}
+                >
+                  <span>🔖</span>
+                  <span>已想看</span>
+                </button>
+                <button
+                  onClick={() => setWatchedOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-white transition-colors"
+                  style={{ backgroundColor: 'var(--accent)' }}
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                  </svg>
+                  <span>看过</span>
+                </button>
+              </>
             ) : (
-              <button
-                onClick={handleWantClick}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border transition-colors"
-                style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
-              >
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                </svg>
-                <span>想看</span>
-              </button>
+              /* No status: show 想看 + 看过 */
+              <>
+                <button
+                  onClick={handleWantClick}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border transition-colors"
+                  style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                  </svg>
+                  <span>想看</span>
+                </button>
+                <button
+                  onClick={() => setWatchedOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-white transition-colors"
+                  style={{ backgroundColor: 'var(--accent)' }}
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                  </svg>
+                  <span>看过</span>
+                </button>
+              </>
             )}
-            <button
-              onClick={() => setCollectOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border transition-colors"
-              style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
-              title="选择片单"
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-              </svg>
-              <span>收藏</span>
-            </button>
-            <button
-              onClick={() => setWatchedOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-white transition-colors"
-              style={{ backgroundColor: movieStatus.watched ? '#22c55e' : 'var(--accent)' }}
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                <polyline points="22 4 12 14.01 9 11.01" />
-              </svg>
-              <span>{movieStatus.watched ? '已看过' : '看过'}</span>
-            </button>
           </div>
 
           {/* Ratings */}

@@ -8,9 +8,12 @@ import { dramaApi } from '@/lib/api';
 import { useResource } from '@/hooks/useResource';
 import { parseRegion, parseGenre, cleanTitle as cleanTitleUtil, cleanStoryline } from '@/lib/utils';
 import { useUserStore } from '@/stores/userStore';
+import { listApi, statusApi } from '@/lib/userApi';
+import { useToast } from '@/components/Toast';
 import dynamic from 'next/dynamic';
 
 const CollectModal = dynamic(() => import('@/components/CollectModal'), { ssr: false });
+const WatchedModal = dynamic(() => import('@/components/WatchedModal'), { ssr: false });
 
 interface DramaDetail {
   id: number;
@@ -38,12 +41,37 @@ export default function DramaDetailPage() {
   const [selectedEpisode, setSelectedEpisode] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<'info' | 'episode'>('info');
   const [collectOpen, setCollectOpen] = useState(false);
+  const [watchedOpen, setWatchedOpen] = useState(false);
+  const [movieStatus, setMovieStatus] = useState<{ want_to_watch?: boolean; watching?: boolean; watched?: boolean; watchedRating?: number }>({});
   const isAuthenticated = useUserStore((s) => s.isAuthenticated);
+  const { showToast } = useToast();
 
   const { onlineResources: realOnline, loading: resourcesLoading } = useResource('drama', id);
   const { onlineResources: epOnline } = useResource('drama', id, selectedEpisode || undefined);
 
   useEffect(() => { if (id) fetchDetail(); }, [id]);
+
+  // Fetch status
+  useEffect(() => {
+    if (!isAuthenticated || !id) return;
+    statusApi.get(id, 'drama').then(res => {
+      const data = res.data.data || res.data;
+      const status: any = {};
+      if (Array.isArray(data)) {
+        data.forEach((item: any) => {
+          if (item.added) {
+            if (item.type === 'want_to_watch') status.want_to_watch = true;
+            if (item.type === 'watching') status.watching = true;
+            if (item.type === 'watched') {
+              status.watched = true;
+              if (item.userRating) status.watchedRating = Number(item.userRating);
+            }
+          }
+        });
+      }
+      setMovieStatus(status);
+    }).catch(() => {});
+  }, [isAuthenticated, id]);
 
   const fetchDetail = async () => {
     setLoading(true);
@@ -109,20 +137,61 @@ export default function DramaDetailPage() {
           <img src={item.cover || `https://picsum.photos/seed/d${id}/400/600`} alt={item.title} className="w-full aspect-[2/3] object-cover rounded-xl" />
         </div>
         <div className="flex-1 flex flex-col gap-3 min-w-0">
-          <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-3" style={{ color: 'var(--text-primary)' }}>
+          <h1 className="text-2xl md:text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>
             <span>{cleanTitleUtil(item.title)}</span>
-            {item.year > 0 && <span className="text-lg font-normal" style={{ color: 'var(--text-muted)' }}>({item.year})</span>}
-            <button
-              onClick={() => setCollectOpen(true)}
-              className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center border transition-colors"
-              style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
-              title="收藏"
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-              </svg>
-            </button>
+            {item.year > 0 && <span className="text-lg font-normal ml-2" style={{ color: 'var(--text-muted)' }}>({item.year})</span>}
           </h1>
+          {/* Action buttons */}
+          <div className="flex items-center gap-2">
+            {movieStatus.watched ? (
+              <>
+                <button onClick={() => setCollectOpen(true)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border transition-colors" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
+                  <span>收藏</span>
+                </button>
+                <button onClick={() => setWatchedOpen(true)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-white" style={{ backgroundColor: '#22c55e' }}>
+                  <span>已看过</span>
+                  {movieStatus.watchedRating != null && movieStatus.watchedRating > 0 && <span className="ml-1 px-1.5 py-0.5 rounded text-xs font-bold" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}>{movieStatus.watchedRating.toFixed(1)}</span>}
+                </button>
+              </>
+            ) : movieStatus.watching ? (
+              <>
+                <button onClick={() => showToast('该影片已被标记为在看', 'warning')} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border" style={{ borderColor: '#3b82f6', color: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.08)' }}>
+                  <span>👁️</span><span>在看</span>
+                </button>
+                <button onClick={() => setWatchedOpen(true)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-white" style={{ backgroundColor: 'var(--accent)' }}>
+                  <span>看过</span>
+                </button>
+              </>
+            ) : movieStatus.want_to_watch ? (
+              <>
+                <button onClick={() => showToast('该影片已在想看片单中', 'warning')} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border" style={{ borderColor: '#f59e0b', color: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.08)' }}>
+                  <span>🔖</span><span>已想看</span>
+                </button>
+                <button onClick={() => setWatchedOpen(true)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-white" style={{ backgroundColor: 'var(--accent)' }}>
+                  <span>看过</span>
+                </button>
+              </>
+            ) : (
+              <>
+                <button onClick={async () => {
+                  if (!isAuthenticated) return;
+                  try {
+                    const res = await listApi.getAll();
+                    const lists = res.data.data || res.data;
+                    const wantList = Array.isArray(lists) ? lists.find((l: any) => l.type === 'want_to_watch') : null;
+                    if (wantList) { await listApi.addItem(wantList.id, { movieId: id, contentType: 'drama' }); setMovieStatus(prev => ({ ...prev, want_to_watch: true })); showToast('已加入想看', 'success'); }
+                  } catch {}
+                }} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
+                  <span>想看</span>
+                </button>
+                <button onClick={() => setWatchedOpen(true)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-white" style={{ backgroundColor: 'var(--accent)' }}>
+                  <span>看过</span>
+                </button>
+              </>
+            )}
+          </div>
           {item.rating != null && (
             <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-sm font-medium w-fit" style={{ backgroundColor: '#fef2f2', color: '#dc2626' }}>豆瓣 {item.rating.toFixed(1)}</span>
           )}
@@ -205,6 +274,13 @@ export default function DramaDetailPage() {
     <CollectModal
       open={collectOpen}
       onClose={() => setCollectOpen(false)}
+      movieId={id}
+      contentType="drama"
+      movieTitle={item.title}
+    />
+    <WatchedModal
+      open={watchedOpen}
+      onClose={() => setWatchedOpen(false)}
       movieId={id}
       contentType="drama"
       movieTitle={item.title}

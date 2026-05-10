@@ -290,11 +290,6 @@ export default function MovieCard({
           </p>
 
           <div className="flex items-center gap-1 flex-wrap">
-            {rating != null ? (
-              <span className="text-[10px] md:text-xs font-semibold" style={{ color: 'var(--accent)' }}>
-                ★{rating.toFixed(1)}
-              </span>
-            ) : null}
             {year ? (
               <span className="text-[10px] md:text-xs" style={{ color: 'var(--text-muted)' }}>
                 {year}

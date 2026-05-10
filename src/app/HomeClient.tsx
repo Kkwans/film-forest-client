@@ -1,9 +1,10 @@
 // @ts-nocheck
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useMemo } from 'react';
 import Link from 'next/link';
 import MovieCard from '@/components/MovieCard';
+import { useMovieStatuses } from '@/hooks/useMovieStatuses';
 
 interface ContentItem {
   id: number;
@@ -26,6 +27,8 @@ function HorizontalSection({ title, href, items, type }: { title: string; href: 
   if (items.length === 0) return null;
 
   const displayItems = items.slice(0, 12);
+  const movieIds = useMemo(() => displayItems.map(i => i.id), [displayItems]);
+  const statusMap = useMovieStatuses(movieIds, type);
 
   return (
     <section>
@@ -40,16 +43,16 @@ function HorizontalSection({ title, href, items, type }: { title: string; href: 
       {/* PC: grid 2 rows x 6 cols */}
       <div className="hidden md:grid grid-cols-6 gap-3">
         {displayItems.map((item) => (
-          <MovieCard key={item.id} id={item.id} title={item.title} cover={item.cover} year={item.year} region={item.region} rating={item.rating} genre={item.genre} type={type} duration={item.duration} episodes={item.episodes} href={`/${type}/${item.id}`} />
+          <MovieCard key={item.id} id={item.id} title={item.title} cover={item.cover} year={item.year} region={item.region} rating={item.rating} genre={item.genre} type={type} duration={item.duration} episodes={item.episodes} href={`/${type}/${item.id}`} movieStatus={statusMap[item.id] || null} />
         ))}
       </div>
 
       {/* Mobile: horizontal scroll */}
       <div className="md:hidden relative">
         <div ref={scrollRef} className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 snap-x snap-mandatory" style={{ WebkitOverflowScrolling: 'touch' }}>
-          {items.map((item) => (
+          {displayItems.map((item) => (
             <div key={item.id} className="flex-shrink-0 w-[120px] snap-start">
-              <MovieCard id={item.id} title={item.title} cover={item.cover} year={item.year} region={item.region} rating={item.rating} genre={item.genre} type={type} duration={item.duration} episodes={item.episodes} href={`/${type}/${item.id}`} />
+              <MovieCard id={item.id} title={item.title} cover={item.cover} year={item.year} region={item.region} rating={item.rating} genre={item.genre} type={type} duration={item.duration} episodes={item.episodes} href={`/${type}/${item.id}`} movieStatus={statusMap[item.id] || null} />
             </div>
           ))}
         </div>
