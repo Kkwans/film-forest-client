@@ -46,11 +46,11 @@ const STATUS_ICONS: Record<string, { icon: string; label: string; color: string;
   want_to_watch: {
     icon: 'M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z',
     label: '想看',
-    color: '#f59e0b',
+    color: '#ef4444',
     fill: true,
   },
   custom: {
-    icon: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z',
+    icon: 'M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z',
     label: '已收藏',
     color: '#8b5cf6',
     fill: true,
@@ -89,38 +89,41 @@ export default function MovieCard({
   const statusConfig = getStatusConfig(movieStatus?.listType);
   const isInDefaultList = movieStatus?.listType === 'want_to_watch' || movieStatus?.listType === 'watching' || movieStatus?.listType === 'watched';
 
-  // Single click: add to want_to_watch (or show toast if already in default list)
+  // Single click: toggle want_to_watch or show toast for other statuses
   const handleSingleClick = useCallback(async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (!isAuthenticated || toggling) return;
 
-    // If already in a default list, show toast
-    if (isInDefaultList && movieStatus) {
+    // If in watching or watched, show toast
+    if (movieStatus?.listType === 'watching' || movieStatus?.listType === 'watched') {
       showToast(`该影片已被标记为${movieStatus.listName}`, 'warning');
       return;
     }
 
-    // Otherwise, add to want_to_watch
     setToggling(true);
     try {
       const res = await listApi.getAll();
       const lists = res.data.data || res.data;
       const wantList = Array.isArray(lists) ? lists.find((l: any) => l.type === 'want_to_watch') : null;
-      if (wantList) {
+      if (!wantList) { setToggling(false); return; }
+
+      if (movieStatus?.listType === 'want_to_watch') {
+        // Already in want_to_watch → remove
+        await listApi.removeItem(wantList.id, { movieId: id, contentType });
+        showToast('已从想看移除', 'success');
+      } else {
+        // Not in any default list → add to want_to_watch
         await listApi.addItem(wantList.id, { movieId: id, contentType });
         showToast('已加入想看', 'success');
-        // Trigger a re-fetch in parent if needed
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('movie-status-changed', { detail: { movieId: id } }));
-        }
       }
-    } catch {
-      showToast('已加入想看', 'success');
-    } finally {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('movie-status-changed', { detail: { movieId: id } }));
+      }
+    } catch {} finally {
       setToggling(false);
     }
-  }, [isAuthenticated, toggling, id, contentType, isInDefaultList, movieStatus, showToast]);
+  }, [isAuthenticated, toggling, id, contentType, movieStatus, showToast]);
 
   // Handle click with delay to distinguish single/double
   const handleCollectClick = useCallback((e: React.MouseEvent) => {

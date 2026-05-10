@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useUserStore, hasStoredToken } from '@/stores/userStore';
 import { listApi, type UserList, type UserListItem } from '@/lib/userApi';
+import { useToast } from '@/components/Toast';
 import Pagination from '@/components/Pagination';
 import CustomSelect from '@/components/CustomSelect';
 import SortDirButton from '@/components/SortDirButton';
@@ -113,19 +114,21 @@ function getRatingStyle(rating: number): React.CSSProperties {
 
 // 评分等级标签
 function getRatingLabel(rating: number): string {
-  if (rating >= 9.5) return '神作';
-  if (rating >= 9) return '佳作';
-  if (rating >= 8) return '优秀';
-  if (rating >= 7) return '良好';
+  if (rating >= 9) return '神作';
+  if (rating >= 8) return '顶级';
+  if (rating >= 7) return '推荐';
   if (rating >= 6) return '还行';
-  if (rating >= 5) return '一般';
-  return '较差';
+  if (rating >= 4) return '很差';
+  if (rating >= 2) return '拉完了';
+  if (rating >= 0.5) return '屎';
+  return '未评价';
 }
 
 export default function ListDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { isAuthenticated } = useUserStore();
+  const { showToast } = useToast();
   const listId = Number(params.id);
 
   const [list, setList] = useState<UserList | null>(null);
@@ -177,6 +180,7 @@ export default function ListDetailPage() {
       await listApi.removeItem(listId, { movieId: confirmDelete.movieId, contentType: confirmDelete.contentType });
       setItems((prev) => prev.filter((i) => i.id !== confirmDelete.id));
       if (list) setList({ ...list, itemCount: Math.max(0, list.itemCount - 1) });
+      showToast('已从片单移除', 'error');
     } catch {} finally { setRemoving(null); setConfirmDelete(null); }
   };
 
@@ -261,15 +265,17 @@ export default function ListDetailPage() {
               const hasRating = isWatchedList && item.userRating != null && Number(item.userRating) > 0;
 
               return (
-                <div key={item.id} className="flex flex-col" onTouchStart={(e) => handleTouchStart(e, item.id)} onTouchEnd={handleTouchEnd}>
+                <div key={item.id} className="relative" onTouchStart={(e) => handleTouchStart(e, item.id)} onTouchEnd={handleTouchEnd}>
+                  {/* Mobile swipe action buttons - behind the card */}
+                  <div className="md:hidden absolute right-0 top-0 bottom-0 flex items-center gap-1 pr-2 z-0" style={{ opacity: isSwiped ? 1 : 0, transition: 'opacity 0.2s' }}>
+                    <button onClick={() => setNoteEdit({ item, listId })} className="h-8 px-3 rounded-lg text-xs font-medium text-white" style={{ backgroundColor: 'var(--accent)' }}>{isWatchedList ? '编辑' : '备注'}</button>
+                    <button onClick={() => setConfirmDelete(item)} className="h-8 px-3 rounded-lg text-xs font-medium text-white" style={{ backgroundColor: '#ef4444' }}>移除</button>
+                  </div>
+                  {/* Card wrapper that slides */}
+                  <div className="flex flex-col" style={{ transform: isSwiped ? 'translateX(-120px)' : 'translateX(0)', transition: 'transform 0.2s ease', position: 'relative', zIndex: 1 }}>
                   {/* Main card */}
-                  <div className="flex gap-3 md:gap-4 p-3 md:p-4 rounded-xl border transition-all hover:shadow-md group relative"
-                    style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)', transform: isSwiped ? 'translateX(-120px)' : 'translateX(0)', transition: 'transform 0.2s ease' }}>
-                    {/* Mobile swipe actions */}
-                    <div className="md:hidden absolute right-0 top-0 bottom-0 flex items-center gap-1 pr-2 z-10" style={{ opacity: isSwiped ? 1 : 0, transition: 'opacity 0.2s' }}>
-                      <button onClick={() => setNoteEdit({ item, listId })} className="h-8 px-3 rounded-lg text-xs font-medium text-white" style={{ backgroundColor: 'var(--accent)' }}>{isWatchedList ? '编辑' : '备注'}</button>
-                      <button onClick={() => setConfirmDelete(item)} className="h-8 px-3 rounded-lg text-xs font-medium text-white" style={{ backgroundColor: '#ef4444' }}>移除</button>
-                    </div>
+                  <div className="flex gap-3 md:gap-4 p-3 md:p-4 rounded-xl border transition-all hover:shadow-md group"
+                    style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}>
 
                     <Link href={href} className="shrink-0">
                       <div className="relative w-[80px] h-[110px] md:w-[100px] md:h-[140px] rounded-lg overflow-hidden">
@@ -337,6 +343,7 @@ export default function ListDetailPage() {
                       </div>
                     </div>
                   )}
+                  </div>{/* end sliding wrapper */}
                 </div>
               );
             })}
