@@ -44,7 +44,7 @@ workspace/
 |       +-- DAILY.md       # 日记忆模板
 +-- tasks/             # 任务（规划、设计、过程、文档）
 |   +-- YYYY-MM/
-|       +-- 任务名-MMDD/
+|       +-- MMDD_HH-任务名称/
 +-- projects/          # 工程产物（代码、配置、脚本）
 |   +-- 项目名/
 +-- tmp/               # 临时文件（workspace 内临时区）
@@ -54,7 +54,7 @@ workspace/
 ### 存放规则
 
 - **根目录**: 只放上述核心 md 文件，不随意新增
-- **任务文档** -> `tasks/YYYY-MM/任务名-MMDD/`
+- **任务文档** -> `tasks/YYYY-MM/MMDD_HH-任务名称/`
 - **工程产物** -> `projects/项目名/`
 - **临时文件** -> `tmp/`（workspace 内），用完及时清理
 - **大型临时文件** -> `/tmp/`（系统临时目录，重启即清）
@@ -69,14 +69,29 @@ workspace/
 | 创建/编辑任何 workspace 文件 | `guides/WRITE_NORM.md` |
 | 新建/查询/执行/更新任务 | `guides/TASK_RULES.md` |
 | 部署项目 / Docker 相关操作 | `guides/DEPLOY_RULES.md` |
+| **Git push 操作** | `guides/DEPLOY_RULES.md` 第五节 |
 | 新建项目 / 初始化工程目录 | `guides/PROJECT_RULES.md` |
 | 更新/整理记忆 | `guides/MEMORY_RULES.md` |
 | 创建任务文件（PLAN/DESIGN/LOG 等） | `guides/templates/` 下对应模板 |
 | 创建日记忆 | `guides/templates/DAILY.md` |
+| 中大型需求开发（Spec Coding） | `guides/SPEC_CODING.md` |
+| **定时任务执行** | `guides/TASK_RULES.md` + `guides/SPEC_CODING.md` |
 
 多个场景同时涉及时，加载所有相关指南。
-**首次写入文件的操作，必须先读 WRITE_NORM.md。**
+**首次写入或创建文件的操作，必须先读 WRITE_NORM.md。**
 **创建任务文件时，必须先读对应模板。**
+
+### 规范自动加载规则（强制）
+
+**任何操作前，必须先查指南索引，加载对应规范。** 不是“发现规范才执行”，而是“主动查阅规范再执行”。
+
+- Git push 前 → 必须读 `guides/DEPLOY_RULES.md` 第五节
+- 部署操作前 → 必须读 `guides/DEPLOY_RULES.md`
+- 任务执行前 → 必须读 `guides/TASK_RULES.md`
+- 中大型需求前 → 必须读 `guides/SPEC_CODING.md`
+- 定时任务执行前 → 必须读 `guides/TASK_RULES.md` + `guides/SPEC_CODING.md`
+
+**违反规范 = 工作无效，必须返工。**
 
 ## 核心军规（精简版，始终有效）
 
@@ -92,7 +107,7 @@ workspace/
 ### 底线红线（触碰即死）
 
 - **部署目录红线**: NAS 部署必须放在 `/volume1/docker/<项目名>/`，绝对不能放 `/home/Kkwans/` 用户个人目录。
-- **Heartbeat 汇报红线**: 只汇报该 30 分钟内做的事，不把之前的工作算进来。如实汇报。
+- **Heartbeat 汇报红线**: 只汇报和上次Heartbeat时间间隔内做的事，不把之前的工作算进来。如实汇报。
 - **重要内容永久化红线**: 重要教训和规范必须写入 MEMORY.md + 对应规范文件，不只写当日记忆。
 
 ### 规范（违反会挨骂，屡教不改累积爆发）
@@ -106,7 +121,7 @@ workspace/
 - 要点前置，1/2/3/4 分点展示
 - 代码使用 markdown 块，关键配置加粗
 - 结尾给出：可执行命令 / 验证方法 / 下一步动作
-- QQ 场景下分段发送，不输出超长单条消息
+- 长文本内容分段发送，不输出超长单条消息
 
 ## 安全边界
 
@@ -145,15 +160,8 @@ workspace/
 收到心跳轮询时：
 - 有事 -> 执行并汇报
 - 无事 -> 回复 `HEARTBEAT_OK`
-- 深夜（23:00-08:00）除非紧急，保持安静
 
 ## 自定义
 
 这是起点。随着你和主人磨合，持续改进这个文件。
 新增规则/模板请放入 `guides/` 对应文件，不要堆在本文件中。
-
-## 时间规则（2026-04-28 主人更新）
-
-- **23:00 后**：进入高效模式，全力开发，不废话不汇报，专注代码产出
-- **全天无休息**：不主动切换安静模式，24小时待命
-- 主人明确要求取消安静模式，改为高效开发模式

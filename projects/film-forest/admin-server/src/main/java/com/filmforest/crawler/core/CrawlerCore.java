@@ -14,7 +14,6 @@ import com.filmforest.resource.entity.ResourceCloud;
 import com.filmforest.resource.mapper.ResourceMagnetMapper;
 import com.filmforest.resource.mapper.ResourceOnlineMapper;
 import com.filmforest.resource.mapper.ResourceCloudMapper;
-import com.filmforest.content.mapper.EpisodeMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
@@ -57,7 +56,6 @@ public class CrawlerCore {
     @Autowired private ResourceMagnetMapper magnetMapper;
     @Autowired private ResourceOnlineMapper onlineMapper;
     @Autowired private ResourceCloudMapper cloudMapper;
-    @Autowired private EpisodeMapper episodeMapper;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final Pattern YEAR_PATTERN = Pattern.compile("((?:19|20)\\d{2})");
@@ -88,20 +86,25 @@ public class CrawlerCore {
                 return;
             }
 
+            // 断点续爬：从上次停止的页码继续
+            int startPage = schedule.getLastCrawledPage() != null ? schedule.getLastCrawledPage() : 1;
+            if (startPage < 1) startPage = 1;
+            log.info("[CrawlerCore] Starting crawl for type={}, startPage={}, batchSize={}", type, startPage, batchSize);
+
             if ("movie".equals(type)) {
-                int[] r = crawlMovieList(1, batchSize, stopFlag);
+                int[] r = crawlMovieList(startPage, batchSize, stopFlag, scheduleId);
                 added = r[0]; updated = r[1]; total = r[2];
             } else if ("drama".equals(type)) {
-                int[] r = crawlDramaList(1, batchSize, stopFlag);
+                int[] r = crawlDramaList(startPage, batchSize, stopFlag, scheduleId);
                 added = r[0]; updated = r[1]; total = r[2];
             } else if ("variety".equals(type)) {
-                int[] r = crawlVarietyList(1, batchSize, stopFlag);
+                int[] r = crawlVarietyList(startPage, batchSize, stopFlag, scheduleId);
                 added = r[0]; updated = r[1]; total = r[2];
             } else if ("anime".equals(type)) {
-                int[] r = crawlAnimeList(1, batchSize, stopFlag);
+                int[] r = crawlAnimeList(startPage, batchSize, stopFlag, scheduleId);
                 added = r[0]; updated = r[1]; total = r[2];
             } else if ("short_drama".equals(type) || "short".equals(type)) {
-                int[] r = crawlShortDramaList(1, batchSize, stopFlag);
+                int[] r = crawlShortDramaList(startPage, batchSize, stopFlag, scheduleId);
                 added = r[0]; updated = r[1]; total = r[2];
             }
 
@@ -117,6 +120,8 @@ public class CrawlerCore {
             schedule.setLastRunTime(LocalDateTime.now());
             schedule.setTotalRuns(schedule.getTotalRuns() + 1);
             schedule.setTotalItems(schedule.getTotalItems() + total);
+            // 爬取成功，重置断点
+            resetCrawlProgress(scheduleId);
             scheduleService.saveSchedule(schedule);
 
         } catch (Exception e) {
@@ -147,18 +152,16 @@ public class CrawlerCore {
         return BASE_URL + "/vt/" + type + (page > 1 ? "-" + page : "") + ".html";
     }
 
-    public int[] crawlMovieList(int startPage, int maxItems, AtomicBoolean stopFlag) {
+    public int[] crawlMovieList(int startPage, int maxItems, AtomicBoolean stopFlag, Long scheduleId) {
         int added = 0, updated = 0, total = 0;
         int page = startPage;
 
         while (total < maxItems) {
             if (stopFlag != null && stopFlag.get()) break;
-            // type=1 电影列表: /vt/1.html, /vt/1-2.html, ...
             String listUrl = getListUrl("1", page);
             Document listDoc = fetchWithRetry(listUrl);
             if (listDoc == null) break;
 
-            // 抓详情页链接 /mv/数字.html（去重，避免同一页面中重复链接导致重复入库）
             Set<String> seenUrls = new HashSet<>();
             Elements links = listDoc.select("a[href^='/mv/']");
             if (links.isEmpty()) break;
@@ -172,11 +175,13 @@ public class CrawlerCore {
                 String detailUrl = BASE_URL + href;
                 if (stopFlag != null && stopFlag.get()) break;
                 int[] r = crawlMovieDetail(detailUrl, stopFlag);
-            log.debug("crawlMovieDetail completed for: {} -> added:{} updated:{}", detailUrl, r[0], r[1]);
+                log.debug("crawlMovieDetail completed for: {} -> added:{} updated:{}", detailUrl, r[0], r[1]);
                 if (r[0] == 1) added++;
                 if (r[1] == 1) updated++;
                 total++;
             }
+            // 断点续爬：保存当前页码
+            saveCrawlProgress(scheduleId, page, 0L);
             page++;
         }
         return new int[]{added, updated, total};
@@ -225,6 +230,14 @@ public class CrawlerCore {
 
             // 评分: 优先从豆瓣链接提取，fallback 到 meta description
             BigDecimal score = extractScore(doc);
+            BigDecimal imdbScore = extractImdbScore(doc);
+
+            // 新增字段
+            String language = extractLanguage(doc);
+            Integer duration = extractDuration(doc);
+            String releaseDate = extractReleaseDate(doc);
+            String alias = extractAlias(doc);
+            String writer = extractWriter(doc);
 
             Long contentId = extractContentId(detailUrl);
             Movie existing = movieService.getById(contentId);
@@ -238,9 +251,15 @@ public class CrawlerCore {
             movie.setStoryline(storyline);
             movie.setActor(toJsonArray(actor));
             movie.setDirector(toJsonArray(director));
+            movie.setWriter(toJsonArray(writer));
             movie.setGenre(toJsonArray(genre));
             movie.setRegion(toJsonArray(region));
+            movie.setLanguage(language);
+            movie.setDuration(duration);
+            movie.setReleaseDate(releaseDate);
+            movie.setAlias(alias);
             movie.setScoreDouban(score);
+            movie.setScoreImdb(imdbScore);
             movie.setStatus(1);
 
             if (isNew) {
@@ -261,7 +280,7 @@ public class CrawlerCore {
     // ========== Drama Crawler ==========
 
     // type=2 剧集列表: /vt/2.html, /vt/2-2.html
-    public int[] crawlDramaList(int startPage, int maxItems, AtomicBoolean stopFlag) {
+    public int[] crawlDramaList(int startPage, int maxItems, AtomicBoolean stopFlag, Long scheduleId) {
         int added = 0, updated = 0, total = 0;
         int page = startPage;
 
@@ -288,6 +307,7 @@ public class CrawlerCore {
                 if (r[1] == 1) updated++;
                 total++;
             }
+            saveCrawlProgress(scheduleId, page, 0L);
             page++;
         }
         return new int[]{added, updated, total};
@@ -312,7 +332,13 @@ public class CrawlerCore {
             String genre = extractGenresFromTags(doc);
             List<String> regionList = extractRegionFromTags(doc); String region = "[]"; try { region = objectMapper.writeValueAsString(regionList); } catch (Exception ignored) {}
             BigDecimal score = extractScore(doc);
+            BigDecimal imdbScore = extractImdbScore(doc);
             Integer totalEpisode = extractEpisodeCount(doc);
+            String language = extractLanguage(doc);
+            Integer duration = extractDuration(doc);
+            String releaseDate = extractReleaseDate(doc);
+            String alias = extractAlias(doc);
+            String writer = extractWriter(doc);
 
             Long contentId = extractContentId(detailUrl);
             Drama existing = dramaService.getById(contentId);
@@ -326,9 +352,15 @@ public class CrawlerCore {
             drama.setStoryline(storyline);
             drama.setActor(toJsonArray(actor));
             drama.setDirector(toJsonArray(director));
+            drama.setWriter(toJsonArray(writer));
             drama.setGenre(toJsonArray(genre));
             drama.setRegion(toJsonArray(region));
+            drama.setLanguage(language);
+            drama.setDuration(duration);
+            drama.setReleaseDate(releaseDate);
+            drama.setAlias(alias);
             drama.setScoreDouban(score);
+            drama.setScoreImdb(imdbScore);
             drama.setTotalEpisode(totalEpisode);
             drama.setStatus(1);
 
@@ -349,7 +381,7 @@ public class CrawlerCore {
     // ========== Variety Crawler ==========
 
     // type=3 综艺列表
-    public int[] crawlVarietyList(int startPage, int maxItems, AtomicBoolean stopFlag) {
+    public int[] crawlVarietyList(int startPage, int maxItems, AtomicBoolean stopFlag, Long scheduleId) {
         int added = 0, updated = 0, total = 0;
         int page = startPage;
 
@@ -376,13 +408,14 @@ public class CrawlerCore {
                 if (r[1] == 1) updated++;
                 total++;
             }
+            saveCrawlProgress(scheduleId, page, 0L);
             page++;
         }
         return new int[]{added, updated, total};
     }
 
     // type=4 动漫列表
-    public int[] crawlAnimeList(int startPage, int maxItems, AtomicBoolean stopFlag) {
+    public int[] crawlAnimeList(int startPage, int maxItems, AtomicBoolean stopFlag, Long scheduleId) {
         int added = 0, updated = 0, total = 0;
         int page = startPage;
 
@@ -409,13 +442,14 @@ public class CrawlerCore {
                 if (r[1] == 1) updated++;
                 total++;
             }
+            saveCrawlProgress(scheduleId, page, 0L);
             page++;
         }
         return new int[]{added, updated, total};
     }
 
     // type=30 短剧列表
-    public int[] crawlShortDramaList(int startPage, int maxItems, AtomicBoolean stopFlag) {
+    public int[] crawlShortDramaList(int startPage, int maxItems, AtomicBoolean stopFlag, Long scheduleId) {
         int added = 0, updated = 0, total = 0;
         int page = startPage;
 
@@ -442,6 +476,7 @@ public class CrawlerCore {
                 if (r[1] == 1) updated++;
                 total++;
             }
+            saveCrawlProgress(scheduleId, page, 0L);
             page++;
         }
         return new int[]{added, updated, total};
@@ -460,8 +495,17 @@ public class CrawlerCore {
             Integer year = extractYear(doc);
             String storyline = extractStoryline(doc);
             String actor = extractTextByLabel(doc, "主演");
+            String director = extractTextByLabel(doc, "导演");
             String genre = extractGenresFromTags(doc);
+            List<String> regionList = extractRegionFromTags(doc); String region = "[]"; try { region = objectMapper.writeValueAsString(regionList); } catch (Exception ignored) {}
+            BigDecimal score = extractScore(doc);
+            BigDecimal imdbScore = extractImdbScore(doc);
             Integer totalEpisode = extractEpisodeCount(doc);
+            String language = extractLanguage(doc);
+            Integer duration = extractDuration(doc);
+            String releaseDate = extractReleaseDate(doc);
+            String alias = extractAlias(doc);
+            String writer = extractWriter(doc);
 
             Long contentId = extractContentId(detailUrl);
             Variety existing = varietyService.getById(contentId);
@@ -474,7 +518,16 @@ public class CrawlerCore {
             variety.setYear(year);
             variety.setStoryline(storyline);
             variety.setActor(toJsonArray(actor));
+            variety.setDirector(toJsonArray(director));
+            variety.setWriter(toJsonArray(writer));
             variety.setGenre(toJsonArray(genre));
+            variety.setRegion(toJsonArray(region));
+            variety.setLanguage(language);
+            variety.setDuration(duration);
+            variety.setReleaseDate(releaseDate);
+            variety.setAlias(alias);
+            variety.setScoreDouban(score);
+            variety.setScoreImdb(imdbScore);
             variety.setTotalEpisode(totalEpisode);
             variety.setStatus(1);
 
@@ -511,6 +564,12 @@ public class CrawlerCore {
             String genre = extractGenresFromTags(doc);
             List<String> regionList = extractRegionFromTags(doc); String region = "[]"; try { region = objectMapper.writeValueAsString(regionList); } catch (Exception ignored) {}
             Integer totalEpisode = extractEpisodeCount(doc);
+            String language = extractLanguage(doc);
+            Integer duration = extractDuration(doc);
+            String releaseDate = extractReleaseDate(doc);
+            String alias = extractAlias(doc);
+            String writer = extractWriter(doc);
+            BigDecimal imdbScore = extractImdbScore(doc);
 
             Long contentId = extractContentId(detailUrl);
             Anime existing = animeService.getById(contentId);
@@ -524,8 +583,14 @@ public class CrawlerCore {
             anime.setStoryline(storyline);
             anime.setActor(toJsonArray(actor));
             anime.setDirector(toJsonArray(director));
+            anime.setWriter(toJsonArray(writer));
             anime.setGenre(toJsonArray(genre));
             anime.setRegion(toJsonArray(region));
+            anime.setLanguage(language);
+            anime.setDuration(duration);
+            anime.setReleaseDate(releaseDate);
+            anime.setAlias(alias);
+            anime.setScoreImdb(imdbScore);
             anime.setTotalEpisode(totalEpisode);
             anime.setStatus(1);
 
@@ -556,9 +621,16 @@ public class CrawlerCore {
             Integer year = extractYear(doc);
             String storyline = extractStoryline(doc);
             String actor = extractTextByLabel(doc, "主演");
+            String director = extractTextByLabel(doc, "导演");
             String genre = extractGenresFromTags(doc);
             List<String> regionList = extractRegionFromTags(doc); String region = "[]"; try { region = objectMapper.writeValueAsString(regionList); } catch (Exception ignored) {}
             Integer totalEpisode = extractEpisodeCount(doc);
+            String language = extractLanguage(doc);
+            Integer duration = extractDuration(doc);
+            String releaseDate = extractReleaseDate(doc);
+            String alias = extractAlias(doc);
+            String writer = extractWriter(doc);
+            BigDecimal imdbScore = extractImdbScore(doc);
 
             Long contentId = extractContentId(detailUrl);
             ShortDrama existing = shortDramaService.getById(contentId);
@@ -571,8 +643,14 @@ public class CrawlerCore {
             shortDrama.setYear(year);
             shortDrama.setStoryline(storyline);
             shortDrama.setActor(toJsonArray(actor));
+            shortDrama.setDirector(toJsonArray(director));
             shortDrama.setGenre(toJsonArray(genre));
             shortDrama.setRegion(toJsonArray(region));
+            shortDrama.setLanguage(language);
+            shortDrama.setDuration(duration);
+            shortDrama.setReleaseDate(releaseDate);
+            shortDrama.setAlias(alias);
+            shortDrama.setScoreImdb(imdbScore);
             shortDrama.setTotalEpisode(totalEpisode);
             shortDrama.setStatus(1);
 
@@ -590,13 +668,17 @@ public class CrawlerCore {
         }
     }
 
-    // ========== Episode Extraction ==========
+    // ========== Episode -> ResourceOnline ==========
 
+    /**
+     * 解析播放链接，写入 resource_online（含剧集信息）
+     * 替代原 episode 表，播放链接 + 剧集元信息合一
+     */
     private void extractEpisodes(Document doc, String contentType, Long contentId) {
-        // 增量更新：删除旧剧集记录
-        episodeMapper.delete(new LambdaQueryWrapper<Episode>()
-                .eq(Episode::getContentType, contentType)
-                .eq(Episode::getContentId, contentId));
+        // 增量更新：删除旧的在线播放记录
+        onlineMapper.delete(new LambdaQueryWrapper<ResourceOnline>()
+                .eq(ResourceOnline::getContentType, contentType)
+                .eq(ResourceOnline::getContentId, contentId));
 
         // 解析在线播放区域的剧集链接
         // 格式: <li><a href="/py/475547-7-1.html" target="blank">第01集</a></li>
@@ -609,23 +691,24 @@ public class CrawlerCore {
             // 从文本提取集数: "第01集" -> 1
             Integer episodeNum = extractEpisodeNumber(text);
             if (episodeNum == null) {
-                // fallback: 从 URL 提取集数 /py/475547-7-1.html -> 1
                 episodeNum = extractEpisodeNumberFromUrl(href);
             }
             if (episodeNum == null) continue;
 
-            Episode episode = new Episode();
-            episode.setContentType(contentType);
-            episode.setContentId(contentId);
-            episode.setSeason(1);
-            episode.setEpisodeNumber(episodeNum);
-            episode.setTitle(text);
-            episodeMapper.insert(episode);
-            count++;
+            ResourceOnline online = new ResourceOnline();
+            online.setContentType(contentType);
+            online.setContentId(contentId);
+            online.setSeason(1);
+            online.setEpisodeNumber(episodeNum);
+            online.setEpisodeTitle(text);
+            online.setSourceName(text);
+            online.setSourceUrl(href.startsWith("http") ? href : BASE_URL + href);
+            online.setSort(count++);
+            onlineMapper.insert(online);
         }
 
         if (count > 0) {
-            log.info("Extracted {} episodes for {} {}", count, contentType, contentId);
+            log.info("Extracted {} play links for {} {}", count, contentType, contentId);
         }
     }
 
@@ -665,6 +748,7 @@ public class CrawlerCore {
 
         int magnetSort = 0;
         int onlineSort = 0;
+        int cloudSort = 0;
 
         // Magnet links
         Elements magnetLinks = doc.select("a[href^=magnet:]");
@@ -704,8 +788,8 @@ public class CrawlerCore {
             onlineMapper.insert(online);
         }
 
-        // Cloud disk links
-        Elements cloudLinks = doc.select("a[href*=pan.baidu], a[href*=quark], a[href*=lanzou], a[href*=xunlei]");
+        // Cloud disk links (百度/夸克/迅雷/UC/阿里/123/蓝奏)
+        Elements cloudLinks = doc.select("a[href*=pan.baidu], a[href*=quark], a[href*=lanzou], a[href*=xunlei], a[href*=uc.cn], a[href*=alipan], a[href*=aliyundrive], a[href*=123pan], a[href*=123.com]");
         for (Element el : cloudLinks) {
             String href = el.attr("href");
             if (href.isEmpty() || href.startsWith("javascript")) continue;
@@ -717,7 +801,7 @@ public class CrawlerCore {
             cloud.setDiskType(detectDiskType(href));
             cloud.setTitle(text);
             cloud.setUrl(href);
-            cloud.setSort(0);
+            cloud.setSort(cloudSort++);
             cloudMapper.insert(cloud);
         }
     }
@@ -736,6 +820,39 @@ public class CrawlerCore {
             log.warn("[PROXY] 代理不可用 {}:{}, 将直连", PROXY_HOST, PROXY_PORT);
         }
         return proxyAvailable;
+    }
+
+    // ========== Breakpoint Resumption ==========
+
+    /** 保存爬取进度（断点续爬） */
+    private void saveCrawlProgress(Long scheduleId, int page, Long lastId) {
+        if (scheduleId == null) return;
+        try {
+            CrawlerSchedule s = scheduleService.getSchedule(scheduleId);
+            if (s != null) {
+                s.setLastCrawledPage(page);
+                s.setLastCrawledId(lastId);
+                scheduleService.saveSchedule(s);
+                log.debug("[CrawlerCore] Saved progress: scheduleId={}, page={}, lastId={}", scheduleId, page, lastId);
+            }
+        } catch (Exception e) {
+            log.warn("[CrawlerCore] Failed to save progress: {}", e.getMessage());
+        }
+    }
+
+    /** 爬取完成，重置断点 */
+    private void resetCrawlProgress(Long scheduleId) {
+        if (scheduleId == null) return;
+        try {
+            CrawlerSchedule s = scheduleService.getSchedule(scheduleId);
+            if (s != null) {
+                s.setLastCrawledPage(0);
+                s.setLastCrawledId(0L);
+                scheduleService.saveSchedule(s);
+            }
+        } catch (Exception e) {
+            log.warn("[CrawlerCore] Failed to reset progress: {}", e.getMessage());
+        }
     }
 
     // ========== HTTP Helper ==========
@@ -796,11 +913,40 @@ public class CrawlerCore {
     }
 
     private BigDecimal extractScore(Document doc) {
-        Element el = doc.selectFirst(".score, [class*=score], .rating");
-        if (el == null) return null;
-        String text = el.text().replaceAll("[^0-9.]", "");
-        if (text.isEmpty()) return null;
-        try { return new BigDecimal(text); } catch (Exception ignored) { return null; }
+        // pkmp4.xyz 评分结构:
+        // <a href="https://movie.douban.com/..."><span style="color: green;">豆瓣 8.6</span></a>
+        // <a href="https://www.imdb.com/..."><span style="color: #dba400;">IMDB 8.3</span></a>
+        // <a href="https://www.rottentomatoes.com/..."><span style="color: #ff5b5b;">烂番茄 94%</span></a>
+
+        // 优先从豆瓣链接提取
+        Elements scoreLinks = doc.select("a[href*=douban], a[href*=imdb], a[href*=rottentomatoes]");
+        for (Element link : scoreLinks) {
+            String href = link.attr("href");
+            String text = link.text();
+            // 匹配 "豆瓣 8.6" 或 "IMDB 8.3" 或 "烂番茄 94%"
+            Pattern scorePattern = Pattern.compile("(?:豆瓣|IMDB|烂番茄)[\s:：]*(\\d+\\.\\d+)");
+            Matcher m = scorePattern.matcher(text);
+            if (m.find()) {
+                try {
+                    BigDecimal score = new BigDecimal(m.group(1));
+                    if (score.compareTo(BigDecimal.ZERO) > 0 && score.compareTo(new BigDecimal("10")) <= 0) {
+                        return score;
+                    }
+                } catch (Exception ignored) {}
+            }
+            // 也处理百分比格式（烂番茄 94% -> 9.4）
+            Pattern pctPattern = Pattern.compile("烂番茄[\s:：]*(\\d+)%");
+            Matcher pm = pctPattern.matcher(text);
+            if (pm.find()) {
+                try {
+                    int pct = Integer.parseInt(pm.group(1));
+                    return new BigDecimal(pct).divide(new BigDecimal("10"), 1, BigDecimal.ROUND_HALF_UP);
+                } catch (Exception ignored) {}
+            }
+        }
+
+        // Fallback: 从 meta description 提取
+        return extractScoreFromDescription(doc);
     }
 
     private Integer extractEpisodeCount(Document doc) {
@@ -823,6 +969,9 @@ public class CrawlerCore {
         if (url.contains("quark")) return "quark";
         if (url.contains("lanzou") || url.contains("lanzouk")) return "lanzou";
         if (url.contains("xunlei") || url.contains("thunder")) return "xunlei";
+        if (url.contains("uc.cn") || url.contains("drive.uc")) return "uc";
+        if (url.contains("alipan") || url.contains("aliyundrive") || url.contains("ali.com")) return "ali";
+        if (url.contains("123pan") || url.contains("123.com")) return "123";
         return "other";
     }
 
@@ -898,11 +1047,19 @@ public class CrawlerCore {
 
     /** 从页面 tag 链接提取类型列表 */
     private String extractGenresFromTags(Document doc) {
-        Elements tagLinks = doc.select("a[href^='/ms/1--']");
+        // pkmp4 URL 格式: /ms/{type}---{genre}--------.html
+        // type 可能是 1(电影), 2(剧集), 3(综艺), 4(动漫), 30(短剧)
+        // 选择器匹配所有 /ms/ 开头且包含 --- 的链接
+        Elements tagLinks = doc.select("a[href*='/ms/'][href*='---']");
         List<String> genres = new ArrayList<>();
         for (Element link : tagLinks) {
+            String href = link.attr("href");
+            // 排除地区链接（格式 /ms/{type}-{region}----------.html，只有1个短横线分隔）
+            // 排除语言链接（格式 /ms/{type}----{lang}-------.html）
+            // 类型链接格式: /ms/{type}---{genre}--------.html (3个短横线后接genre)
+            if (!href.matches(".*/ms/\\d+---[^-].*")) continue;
             String t = link.text().trim();
-            if (!t.isEmpty() && t.length() < 20 && !t.matches(".*[0-9]+.*")) {
+            if (!t.isEmpty() && t.length() < 20 && !t.matches(".*\\d+.*")) {
                 genres.add(t);
             }
         }
@@ -919,10 +1076,11 @@ public class CrawlerCore {
         try {
             return objectMapper.readValue(regionJson, new TypeReference<List<String>>() {});
         } catch (Exception e) {
-            // Fallback: 尝试从 /ms/1-{region}----------.html 链接提取
-            Elements tagLinks = doc.select("a[href^='/ms/1-']");
+            // Fallback: 尝试从 /ms/{type}-{region}----------.html 链接提取
+            // type 可能是 1(电影), 2(剧集), 30(短剧) 等
+            Elements tagLinks = doc.select("a[href*='/ms/'][href$='----------.html']");
             List<String> regions = new ArrayList<>();
-            Set<String> knownRegions = Set.of("美国", "中国", "英国", "法国", "德国", "日本", "韩国", "香港", "台湾", "大陆", "印度", "加拿大", "澳大利亚", "西班牙", "意大利", "泰国");
+            Set<String> knownRegions = Set.of("美国", "中国", "英国", "法国", "德国", "日本", "韩国", "香港", "台湾", "大陆", "印度", "加拿大", "澳大利亚", "西班牙", "意大利", "泰国", "中国大陆");
             for (Element link : tagLinks) {
                 String t = link.text().trim();
                 if (knownRegions.contains(t)) regions.add(t);
@@ -942,5 +1100,110 @@ public class CrawlerCore {
             try { return new BigDecimal(m.group(1)); } catch (Exception ignored) {}
         }
         return null;
+    }
+
+    // ========== 新增字段提取方法 ==========
+
+    /** 提取 IMDb 评分 */
+    private BigDecimal extractImdbScore(Document doc) {
+        Elements scoreLinks = doc.select("a[href*=imdb]");
+        for (Element link : scoreLinks) {
+            String text = link.text();
+            Pattern scorePattern = Pattern.compile("IMDB[\s:：]*(\\d+\\.\\d+)");
+            Matcher m = scorePattern.matcher(text);
+            if (m.find()) {
+                try {
+                    BigDecimal score = new BigDecimal(m.group(1));
+                    if (score.compareTo(BigDecimal.ZERO) > 0 && score.compareTo(new BigDecimal("10")) <= 0) {
+                        return score;
+                    }
+                } catch (Exception ignored) {}
+            }
+        }
+        return null;
+    }
+
+    /** 提取语言列表 */
+    private String extractLanguage(Document doc) {
+        // pkmp4 格式: <a href="/ms/1----英语-------.html">英语</a>
+        Elements langLinks = doc.select("a[href*='/ms/'][href*='----']");
+        List<String> languages = new ArrayList<>();
+        for (Element link : langLinks) {
+            String href = link.attr("href");
+            // 语言链接格式: /ms/{type}----{lang}-------.html
+            if (href.matches(".*/ms/\\d+----[^-].*")) {
+                String t = link.text().trim();
+                if (!t.isEmpty() && t.length() < 20 && !t.matches(".*\\d+.*")) {
+                    languages.add(t);
+                }
+            }
+        }
+        if (languages.isEmpty()) {
+            // Fallback: extractTextByLabel
+            return extractTextByLabel(doc, "语言");
+        }
+        try { return objectMapper.writeValueAsString(languages); } catch (Exception e) { return "[]"; }
+    }
+
+    /** 提取片长（分钟） */
+    private Integer extractDuration(Document doc) {
+        // 格式: <span>片长：</span>156分钟
+        String text = doc.body().text();
+        Pattern p = Pattern.compile("片长[：:](\\d+)分钟");
+        Matcher m = p.matcher(text);
+        if (m.find()) {
+            try { return Integer.parseInt(m.group(1)); } catch (Exception ignored) {}
+        }
+        return null;
+    }
+
+    /** 提取上映日期 */
+    private String extractReleaseDate(Document doc) {
+        // 格式: <span>上映：</span>2026-03-20(美国/中国大陆)
+        Elements spans = doc.select("span");
+        for (Element span : spans) {
+            if (span.text().contains("上映")) {
+                Element parent = span.parent();
+                if (parent != null) {
+                    String fullText = parent.text();
+                    // 去掉 "上映：" 前缀
+                    String dateText = fullText.replaceAll(".*上映[：:]\s*", "").trim();
+                    if (!dateText.isEmpty() && dateText.length() > 4) {
+                        return dateText;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /** 提取又名 */
+    private String extractAlias(Document doc) {
+        // 格式: <span>又名：</span>极限返航(台) / 末日圣母号(港)
+        Elements spans = doc.select("span");
+        for (Element span : spans) {
+            if (span.text().contains("又名")) {
+                Element parent = span.parent();
+                if (parent != null) {
+                    String fullText = parent.text();
+                    String aliasText = fullText.replaceAll(".*又名[：:]\s*", "").trim();
+                    if (!aliasText.isEmpty()) {
+                        String[] parts = aliasText.split("[/／]");
+                        List<String> aliases = new ArrayList<>();
+                        for (String p : parts) {
+                            String trimmed = p.trim();
+                            if (!trimmed.isEmpty()) aliases.add(trimmed);
+                        }
+                        try { return objectMapper.writeValueAsString(aliases); } catch (Exception e) { return "[]"; }
+                    }
+                }
+            }
+        }
+        return "[]";
+    }
+
+    /** 提取编剧 */
+    private String extractWriter(Document doc) {
+        return extractTextByLabel(doc, "编剧");
     }
 }

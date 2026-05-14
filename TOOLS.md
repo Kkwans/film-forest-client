@@ -33,15 +33,41 @@ Skills 定义工具怎么用，这个文件记录你的具体环境信息。
 
 ### Docker Compose 项目（/volume1/Docker/）
 
-| 项目 | 服务 | 端口 | 说明 |
-|------|------|------|------|
-| Tailscale | tailscale | - | 外网访问，host 网络 |
-| MySQL | mysql8 | 3306 | 共享数据库 |
-| Film-Forest | admin-server | 8081 | 管理端后端 |
-| Film-Forest | client-server | 8080 | 用户端后端 |
-| Film-Forest | admin-ui | 3001 | 管理端前端 |
-| Film-Forest | client-ui | 3000 | 用户端前端 |
-| OpenClaw | openclaw-gateway-1 | 18789 | J.A.R.V.I.S.（独立 compose） |
+| 项目 | 服务 | 端口 | JAR/挂载 |
+|------|------|------|----------|
+| Tailscale | tailscale | - | host 网络 |
+| MySQL | mysql8 | 3306 | 数据: MySQL/data |
+| Film-Forest | client-server | 8080 | backend/film-forest.jar |
+| Film-Forest | admin-server | 8081 | backend/film-forest-admin.jar |
+| Film-Forest | client-ui | 3000 | frontend/ (standalone) |
+| Film-Forest | admin-ui | 3001 | admin/ (standalone) |
+
+### Film-Forest 目录结构
+```
+/volume1/Docker/Film-Forest/
++-- docker-compose.yml
++-- frontend/           # 用户端前端（standalone build）
++-- admin/              # 管理端前端（standalone build）
++-- backend/
+|   +-- film-forest.jar         # 用户端后端
+|   +-- film-forest-admin.jar   # 管理端后端
+|   +-- logs/                   # 日志
+|   +-- backup/                 # 旧版本（最多保留2个）
+```
+
+### ⚠️ NAS 路径大小写规范（红线，已犯3次）
+
+**NAS Linux 文件系统大小写敏感，/volume1/Docker/ 和 /volume1/docker/ 是两个完全不同的目录！**
+
+| 用途 | 正确路径 | 大小写 |
+|------|----------|--------|
+| Docker 项目根目录 | `/volume1/Docker/` | **大写 D** |
+| Film-Forest 项目 | `/volume1/Docker/Film-Forest/` | **大写 D, 大写 F** |
+| Film-Forest 前端（Docker挂载） | `/volume1/Docker/Film-Forest/frontend` | **大写 D, 大写 F** |
+| Film-Forest 后端 JAR | `/volume1/docker/film-forest/backend/` | **小写 d, 小写 f** |
+| MySQL 数据 | `/volume1/Docker/MySQL/data` | **大写 D, 大写 M** |
+
+**部署前端时必须确认目标路径是 `/volume1/Docker/Film-Forest/frontend`，不是 `/volume1/docker/film-forest/frontend`！**
 
 ### NAS 运行时环境
 

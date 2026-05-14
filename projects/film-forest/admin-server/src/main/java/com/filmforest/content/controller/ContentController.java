@@ -204,6 +204,63 @@ public class ContentController {
         return Result.ok(shortDramaService.removeById(id));
     }
 
+    // ==================== Genre 列表（爬虫配置用） ====================
+
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
+    /**
+     * 获取指定内容类型的所有 genre 标签（去重）
+     * 用于爬虫配置的 genre_filter 多选
+     */
+    @GetMapping("/genres")
+    public Result<java.util.List<String>> getGenres(@RequestParam String contentType) {
+        java.util.Set<String> genres = new java.util.TreeSet<>();
+        String table;
+        switch (contentType) {
+            case "movie": table = "movie"; break;
+            case "drama": table = "drama"; break;
+            case "variety": table = "variety"; break;
+            case "anime": table = "anime"; break;
+            case "short": table = "short_drama"; break;
+            default: return Result.ok(java.util.Collections.emptyList());
+        }
+        // 已知剧情类型白名单
+        java.util.List<String> knownGenreList = java.util.Arrays.asList(
+            "剧情", "喜剧", "动作", "爱情", "科幻", "动画", "悬疑", "惊悚", "恐怖",
+            "犯罪", "冒险", "奇幻", "战争", "历史", "传记", "家庭", "儿童", "音乐",
+            "歌舞", "纪录片", "纪录", "短片", "真人秀", "脱口秀", "喜剧片", "动作片",
+            "爱情片", "科幻片", "恐怖片", "犯罪片", "战争片", "奇幻片", "动画片",
+            "剧情片", "悬疑片", "惊悚片", "冒险片", "传记片", "历史片", "家庭片",
+            "音乐片", "西部", "武侠", "古装", "仙侠", "都市", "校园",
+            "青春", "励志", "热血", "搞笑", "治愈", "文艺", "丧尸", "人性",
+            "美食", "运动", "女性", "其它", "国产动漫", "日韩动漫", "大陆综艺",
+            "日韩综艺", "港台综艺", "欧美动漫", "现代都市", "女频恋爱", "古装仙侠"
+        );
+        java.util.Set<String> knownGenres = new java.util.HashSet<>(knownGenreList);
+        try {
+            java.util.List<String> genreJsons = jdbcTemplate.queryForList(
+                "SELECT genre FROM " + table + " WHERE genre IS NOT NULL AND genre != '[]'",
+                String.class
+            );
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            for (String json : genreJsons) {
+                try {
+                    java.util.List<String> arr = mapper.readValue(json, new com.fasterxml.jackson.core.type.TypeReference<java.util.List<String>>() {});
+                    for (String g : arr) {
+                        // 只保留已知剧情类型
+                        if (knownGenres.contains(g)) {
+                            genres.add(g);
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
+        } catch (Exception e) {
+            return Result.fail("获取 genre 失败: " + e.getMessage());
+        }
+        return Result.ok(new java.util.ArrayList<>(genres));
+    }
+
     // ==================== 统计 ====================
 
     @GetMapping("/stats")
@@ -286,13 +343,13 @@ public class ContentController {
                 results.add(item);
             }
         }
-        if (type == null || type.equals("short")) {
+        if (type == null || type.equals("short_drama") || type.equals("short")) {
             IPage<ShortDrama> sp = shortDramaService.pageList(page, size, null, null, null);
             for (ShortDrama s : sp.getRecords()) {
                 java.util.Map<String, Object> item = new java.util.HashMap<>();
                 item.put("id", s.getId());
                 item.put("title", s.getTitle());
-                item.put("type", "short");
+                item.put("type", "short_drama");
                 item.put("posterUrl", s.getPosterUrl());
                 item.put("year", s.getYear());
                 item.put("status", s.getStatus());
