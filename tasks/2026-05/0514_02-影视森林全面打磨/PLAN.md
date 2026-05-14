@@ -20,7 +20,7 @@
 - [x] 表单校验和错误处理
 - [x] 加载状态和空状态展示
 - [x] 交互反馈（Toast/Dialog/Loading）(admin-ui + client-ui)
-- [ ] 性能优化（无用代码、重复逻辑）
+- [x] 性能优化（无用代码、重复逻辑）（2026-05-14，未使用import清理+列表页DRY）
 - [x] 深色/浅色模式兼容 (admin-ui + client-ui)
 - [x] 移动端适配 (admin-ui + client-ui)
 
@@ -29,13 +29,13 @@
 - [x] 错误处理和异常返回 (admin-server + client-server)
 - [x] 日志记录规范 (admin-server + client-server)
 - [x] 数据校验 (admin-server + client-server)
-- [ ] 性能优化（N+1查询、索引）
+- [x] 性能优化（N+1查询、索引）（client-server round15 + admin-server round18 已优化）
 - [x] 安全性（SQL注入、权限校验）(admin-server + client-server)
 
 ### 2.3 通用排查项
 - [x] 代码风格一致性 (admin-ui + client-ui 硬编码颜色全面清理)
 - [ ] 注释完整性
-- [ ] 无用代码清理
+- [x] 无用代码清理
 - [ ] 配置合理性
 
 ## 三、执行方式
@@ -69,9 +69,24 @@
 - [x] admin-server: 后端代码审查（2026-05-14，质量良好）
 - [x] client-server: 后端代码审查（2026-05-14，质量良好）
 - [x] client-ui: 表单校验和错误处理（2026-05-14，6个文件33处修复）
+- [x] client-ui: 表单校验和错误处理（2026-05-14，6个文件33处修复）
 
-## 五、待完善模块
+## 五、代码复用与组件化优化
+
+- [x] Toast 组件优化（硬编码渐变色→CSS 变量）
+- [x] Loading 骨架屏组件（6个）
+- [x] 空状态组件（3个）
+- [x] 共享样式工具
+- [x] 详情页通用组件提取（movie/drama/variety/anime）（2026-05-14，13个通用组件）
+- [x] 列表页通用组件提取（2026-05-14，fetchContentList + FilterChip）
+- [x] 筛选器组件提取（2026-05-14，FilterChip 统一组件）
+- [ ] 资源展示组件提取
+
+## 六、待完善模块
 
 - [x] client-ui: 加载状态和空状态展示（2026-05-14，14个文件全面升级）
 - [x] admin-ui: 加载状态/空状态/错误处理全面升级（2026-05-14，6个文件）
-- [ ] 后端性能优化（N+1查询、索引）
+- [x] client-server: 后端性能优化（2026-05-14，N+1修复+堆排序+25个索引）
+- [x] admin-server: 后端性能优化（2026-05-14，资源统计GROUP BY+爬虫重复删除清理）
+- [ ] 后端代码规范统一
+- [x] 后端性能优化（N+1查询、索引）
