@@ -1,7 +1,7 @@
 // @ts-nocheck
 'use client';
 
-import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from 'react';
+import { useState, useCallback, createContext, useContext, ReactNode } from 'react';
 
 interface ToastItem {
   id: number;

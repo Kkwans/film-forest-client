@@ -8,7 +8,7 @@ import { searchApi } from '@/lib/api';
 import Pagination from '@/components/Pagination';
 import CustomSelect from '@/components/CustomSelect';
 import SortDirButton from '@/components/SortDirButton';
-import { parseRegion, parseGenre, cleanTitle as cleanTitleUtil } from '@/lib/utils';
+import { cleanTitle as cleanTitleUtil } from '@/lib/utils';
 import { useUserStore } from '@/stores/userStore';
 import { useMovieStatuses } from '@/hooks/useMovieStatuses';
 import { useToast } from '@/components/Toast';

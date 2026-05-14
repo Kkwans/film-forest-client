@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { listApi, type UserList } from '@/lib/userApi';
+import { listApi } from '@/lib/userApi';
 import { useToast } from '@/components/Toast';
 
 interface WatchedModalProps {

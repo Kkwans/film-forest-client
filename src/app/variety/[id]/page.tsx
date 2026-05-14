@@ -4,7 +4,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
 import { varietyApi } from '@/lib/api';
 import { useResource } from '@/hooks/useResource';
 import { parseRegion, parseGenre, cleanTitle as cleanTitleUtil, cleanStoryline } from '@/lib/utils';

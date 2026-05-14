@@ -1,6 +1,4 @@
 // @ts-nocheck
-import Link from 'next/link';
-import MovieCard from '@/components/MovieCard';
 import HomeClient from './HomeClient';
 import { parseRegion, parseGenre } from '@/lib/utils';
 

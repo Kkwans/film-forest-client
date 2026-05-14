@@ -10,7 +10,7 @@ import { useToast } from '@/components/Toast';
 import Pagination from '@/components/Pagination';
 import CustomSelect from '@/components/CustomSelect';
 import SortDirButton from '@/components/SortDirButton';
-import { parseRegion, parseGenre, cleanTitle as cleanTitleUtil } from '@/lib/utils';
+import { cleanTitle as cleanTitleUtil } from '@/lib/utils';
 import dynamic from 'next/dynamic';
 
 const NoteEditModal = dynamic(() => import('@/components/NoteEditModal'), { ssr: false });
