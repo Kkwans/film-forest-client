@@ -870,3 +870,62 @@ admin-server + client-server 全部 Controller/Exception 层代码
 
 ### 总结
 后端代码规范统一完成。ContentController 的全限定类名、硬编码白名单、重复代码三大问题已修复。GlobalExceptionHandler 从单一兜底升级为 5 层异常处理体系，新增 BusinessException 支持业务层主动抛出可预期错误。
+
+---
+
+## 2026-05-14 18:41 - 第20轮：资源展示组件提取（代码复用）
+
+### 排查范围
+client-ui 内容展示相关组件和页面：MovieCard、SearchPage、ListDetailPage
+
+### 发现的问题
+
+**跨文件重复代码：**
+1. **STATUS_ICONS** — MovieCard.tsx 和 search/page.tsx 有完全相同的状态图标配置（~20行 × 2）
+2. **parseJsonArr** — search/page.tsx 和 user/lists/[id]/page.tsx 有完全相同的 JSON 数组解析函数（~8行 × 2）
+3. **Genre 标签渲染** — MovieCard.tsx、search/page.tsx、user/lists/[id]/page.tsx 三处相同的标签样式（~10行 × 3）
+4. **Type 标签渲染** — search/page.tsx 和 user/lists/[id]/page.tsx 两处相同的类型标签（~3行 × 2）
+5. **状态图标按钮** — MovieCard.tsx（~40行）和 search/page.tsx（~25行）相同的收藏/状态按钮逻辑
+
+### 修复内容
+
+**1. 新增 `lib/contentConstants.ts`（共享常量和工具函数）**
+- `STATUS_ICONS` — 观看状态图标配置（watched/watching/want_to_watch/custom）
+- `getStatusConfig()` — 根据 listType 获取状态配置
+- `TYPE_LABELS` — 内容类型中文标签映射
+- `TYPE_HREFS` — 内容类型路由映射
+- `parseJsonArr()` — JSON 字符串数组解析工具
+
+**2. 新增 `components/ContentShared.tsx`（共享 UI 组件）**
+- `StatusIconButton` — 状态图标按钮（支持 listType、loading、size）
+- `TypeBadge` — 类型标签（电影/电视剧/综艺/动漫/短剧）
+- `TypeFilter` — 类型筛选按钮组
+- `GenreTags` — Genre 标签列表（支持 max 限制）
+
+**3. 重构 MovieCard.tsx**
+- 移除 ~60 行重复代码（STATUS_ICONS 定义 + getStatusConfig + 收藏按钮渲染 + Genre 标签）
+- 使用 `getStatusConfig`、`StatusIconButton`、`GenreTags`
+
+**4. 重构 search/page.tsx**
+- 移除 ~40 行重复代码（STATUS_ICONS + parseJsonArr + typeLabel + typeHref + 收藏按钮 + Genre 标签）
+- 使用 `parseJsonArr`、`STATUS_ICONS`、`StatusIconButton`、`TypeBadge`、`GenreTags`
+
+**5. 重构 user/lists/[id]/page.tsx**
+- 移除 ~15 行重复代码（parseJsonArr + typeLabel + Genre 标签 + Type 标签）
+- 使用 `parseJsonArr`、`TypeBadge`、`GenreTags`
+
+### 验证
+- client-ui `next build` ✅ 通过
+- 所有路由正常生成
+
+### 部署
+- commit: 320ee1e (client-ui)
+- GitHub push ✅
+
+### 代码统计
+- 新增: 2 个文件（+280 行共享库）
+- 重构: 3 个文件（-171 行重复代码）
+- 净减少: -115 行跨文件重复代码
+
+### 总结
+内容展示组件提取完成。STATUS_ICONS、parseJsonArr、GenreTags、TypeBadge、StatusIconButton 五个重复模式已提取为共享组件/常量。MovieCard、SearchPage、ListDetailPage 三处消费端代码显著精简，后续修改只需改一处。代码复用与组件化优化维度全部完成。

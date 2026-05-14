@@ -80,7 +80,7 @@
 - [x] 详情页通用组件提取（movie/drama/variety/anime）（2026-05-14，13个通用组件）
 - [x] 列表页通用组件提取（2026-05-14，fetchContentList + FilterChip）
 - [x] 筛选器组件提取（2026-05-14，FilterChip 统一组件）
-- [ ] 资源展示组件提取
+- [x] 资源展示组件提取（2026-05-14，ContentShared + contentConstants）
 
 ## 六、待完善模块
 
