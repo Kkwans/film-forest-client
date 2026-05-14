@@ -137,6 +137,10 @@ export default function ListDetailPage() {
   const [removing, setRemoving] = useState<number | null>(null);
   const [noteEdit, setNoteEdit] = useState<{ item: UserListItem; listId: number } | null>(null);
   const [swipedId, setSwipedId] = useState<number | null>(null);
+  const [batchMode, setBatchMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [batchDeleting, setBatchDeleting] = useState(false);
+  const [confirmBatchDelete, setConfirmBatchDelete] = useState(false);
   const touchStartX = useRef(0);
   const touchCurrentId = useRef<number | null>(null);
 
@@ -201,6 +205,48 @@ export default function ListDetailPage() {
     touchCurrentId.current = null;
   }, []);
 
+  const toggleBatchMode = useCallback(() => {
+    setBatchMode(prev => {
+      if (prev) { setSelectedIds(new Set()); setSwipedId(null); }
+      return !prev;
+    });
+  }, []);
+
+  const toggleSelect = useCallback((itemId: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(itemId)) next.delete(itemId);
+      else next.add(itemId);
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedIds(prev => {
+      if (prev.size === filteredItems.length) return new Set();
+      return new Set(filteredItems.map(i => i.id));
+    });
+  }, [filteredItems]);
+
+  const handleBatchDelete = async () => {
+    if (selectedIds.size === 0) return;
+    setBatchDeleting(true);
+    try {
+      const toDelete = items.filter(i => selectedIds.has(i.id));
+      await listApi.batchRemoveItems(listId, toDelete.map(i => ({ movieId: i.movieId, contentType: i.contentType })));
+      setItems(prev => prev.filter(i => !selectedIds.has(i.id)));
+      if (list) setList({ ...list, itemCount: Math.max(0, list.itemCount - toDelete.length) });
+      showToast(`已移除 ${toDelete.length} 部`, 'success');
+      setSelectedIds(new Set());
+      setBatchMode(false);
+    } catch {
+      showToast('批量移除失败，请稍后再试', 'error');
+    } finally {
+      setBatchDeleting(false);
+      setConfirmBatchDelete(false);
+    }
+  };
+
   const filteredItems = typeFilter ? items.filter(i => i.contentType === typeFilter) : items;
 
   if (!hasStoredToken()) return null;
@@ -234,11 +280,23 @@ export default function ListDetailPage() {
         )}
       </div>
 
-      {/* Sort controls */}
+      {/* Sort controls + batch toggle */}
       {items.length > 0 && (
-        <div className="flex items-center justify-end gap-2">
-          <CustomSelect value={sortBy} options={sortOptions} onChange={v => setSortBy(v)} />
-          <SortDirButton direction={sortDir} onToggle={() => setSortDir(d => d === 'desc' ? 'asc' : 'desc')} />
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            {batchMode && (
+              <button onClick={toggleSelectAll} className="px-2.5 py-1 rounded-lg text-xs font-medium border border-border text-secondary-foreground">
+                {selectedIds.size === filteredItems.length ? '取消全选' : '全选'}
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <CustomSelect value={sortBy} options={sortOptions} onChange={v => setSortBy(v)} />
+            <SortDirButton direction={sortDir} onToggle={() => setSortDir(d => d === 'desc' ? 'asc' : 'desc')} />
+            <button onClick={toggleBatchMode} className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors ${batchMode ? 'bg-destructive text-white border-destructive' : 'border-border text-secondary-foreground'}`}>
+              {batchMode ? '取消' : '批量管理'}
+            </button>
+          </div>
         </div>
       )}
 
@@ -265,6 +323,14 @@ export default function ListDetailPage() {
 
               return (
                 <div key={item.id} className="relative" onTouchStart={(e) => handleTouchStart(e, item.id)} onTouchEnd={handleTouchEnd}>
+                  {/* Batch selection checkbox */}
+                  {batchMode && (
+                    <button onClick={() => toggleSelect(item.id)} className="absolute top-3 left-3 z-10 w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors" style={{ borderColor: selectedIds.has(item.id) ? 'var(--accent)' : 'var(--border-color)', backgroundColor: selectedIds.has(item.id) ? 'var(--accent)' : 'var(--bg-card)' }}>
+                      {selectedIds.has(item.id) && (
+                        <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                      )}
+                    </button>
+                  )}
                   {/* Mobile swipe action buttons - behind the card */}
                   <div className="md:hidden absolute right-0 top-0 bottom-0 flex items-center gap-1 pr-2 z-0" style={{ opacity: isSwiped ? 1 : 0, transition: 'opacity 0.2s' }}>
                     <button onClick={() => setNoteEdit({ item, listId })} className="h-8 px-3 rounded-lg text-xs font-medium text-white bg-accent" >{isWatchedList ? '编辑' : '备注'}</button>
@@ -273,7 +339,7 @@ export default function ListDetailPage() {
                   {/* Card wrapper that slides */}
                   <div className="flex flex-col" style={{ transform: isSwiped ? 'translateX(-120px)' : 'translateX(0)', transition: 'transform 0.2s ease', position: 'relative', zIndex: 1 }}>
                   {/* Main card - remove bottom radius when note card exists */}
-                  <div className={`flex gap-3 md:gap-4 p-3 md:p-4 border transition-all hover:shadow-md group ${(hasNote || hasRating) ? 'rounded-t-xl rounded-b-none' : 'rounded-xl'}`}
+                  <div className={`flex gap-3 md:gap-4 p-3 md:p-4 border transition-all hover:shadow-md group ${(hasNote || hasRating) ? 'rounded-t-xl rounded-b-none' : 'rounded-xl'} ${batchMode && selectedIds.has(item.id) ? 'ring-2' : ''}`} style={batchMode && selectedIds.has(item.id) ? { borderColor: 'var(--accent)' } : undefined} onClick={batchMode ? (e) => { e.preventDefault(); toggleSelect(item.id); } : undefined}
                     >
 
                     <Link href={href} className="shrink-0">
@@ -373,6 +439,33 @@ export default function ListDetailPage() {
         variant="danger"
         loading={removing === confirmDelete?.id}
       />
+
+      {/* Batch delete confirmation */}
+      <Dialog
+        open={confirmBatchDelete}
+        onClose={() => setConfirmBatchDelete(false)}
+        onConfirm={handleBatchDelete}
+        title="批量移除"
+        message={`确定要将选中的 ${selectedIds.size} 部影视从片单中移除吗？此操作不可撤销。`}
+        confirmText={`移除 ${selectedIds.size} 部`}
+        variant="danger"
+        loading={batchDeleting}
+      />
+
+      {/* Bottom spacer for batch action bar */}
+      {batchMode && selectedIds.size > 0 && <div className="h-16" />}
+
+      {/* Batch action bar */}
+      {batchMode && selectedIds.size > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 border-t shadow-lg" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)' }}>
+          <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
+            <span className="text-sm font-medium text-foreground">已选 {selectedIds.size} 项</span>
+            <button onClick={() => setConfirmBatchDelete(true)} className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-destructive">
+              批量移除
+            </button>
+          </div>
+        </div>
+      )}
 
       {noteEdit && (
         <NoteEditModal open={true} onClose={() => setNoteEdit(null)} onSave={handleNoteSave}

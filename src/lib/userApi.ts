@@ -104,6 +104,9 @@ export const listApi = {
   removeItem: (id: number, data: { movieId: number; contentType: string }) =>
     authClient.delete(`/api/user/lists/${id}/items`, { data }),
 
+  batchRemoveItems: (id: number, items: { movieId: number; contentType: string }[]) =>
+    authClient.delete(`/api/user/lists/${id}/items/batch`, { data: { items } }),
+
   updateItem: (id: number, data: { movieId: number; contentType: string; rating?: number; note?: string }) =>
     authClient.put(`/api/user/lists/${id}/items`, data),
 };
