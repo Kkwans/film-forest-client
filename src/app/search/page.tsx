@@ -10,6 +10,8 @@ import CustomSelect from '@/components/CustomSelect';
 import SortDirButton from '@/components/SortDirButton';
 import FilterChip from '@/components/FilterChip';
 import { cleanTitle as cleanTitleUtil } from '@/lib/utils';
+import { parseJsonArr, TYPE_LABELS, TYPE_HREFS, getStatusConfig } from '@/lib/contentConstants';
+import { StatusIconButton, TypeBadge, GenreTags } from '@/components/ContentShared';
 import { useUserStore } from '@/stores/userStore';
 import { useMovieStatuses } from '@/hooks/useMovieStatuses';
 import { useToast } from '@/components/Toast';
@@ -55,32 +57,7 @@ const SORT_OPTIONS = [
   { label: '烂番茄评分', value: 'rt' },
 ];
 
-const typeLabel: Record<string, string> = {
-  movie: '电影', drama: '电视剧', variety: '综艺', anime: '动漫', short_drama: '短剧',
-};
 
-const typeHref: Record<string, string> = {
-  movie: '/movie', drama: '/drama', variety: '/variety', anime: '/anime', short_drama: '/short',
-};
-
-function parseJsonArr(val: string | string[] | undefined): string[] {
-  if (!val) return [];
-  if (Array.isArray(val)) return val;
-  try {
-    const parsed = JSON.parse(val);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-// Status icon config
-const STATUS_ICONS: Record<string, { icon: string; label: string; color: string; fill: boolean }> = {
-  watched: { icon: 'M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z', label: '看过', color: 'var(--status-watched)', fill: true },
-  watching: { icon: 'M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z', label: '在看', color: 'var(--status-watching)', fill: false },
-  want_to_watch: { icon: 'M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z', label: '想看', color: 'var(--status-want)', fill: true },
-  custom: { icon: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z', label: '已收藏', color: 'var(--status-custom)', fill: true },
-};
 
 function SearchContent() {
   const searchParams = useSearchParams();
@@ -234,7 +211,7 @@ function SearchContent() {
         <>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             {filteredResults.map(item => {
-              const href = `${typeHref[item.type] || '/movie'}/${item.id}`;
+              const href = `${TYPE_HREFS[item.type] || '/movie'}/${item.id}`;
               const regionArr = parseJsonArr(item.region);
               const genreArr = parseJsonArr(item.genre);
               const directorArr = parseJsonArr(item.director);
@@ -245,37 +222,17 @@ function SearchContent() {
 
               // Get status for this item
               const movieStatus = statusMap[item.id];
-              const statusConfig = movieStatus ? STATUS_ICONS[movieStatus.listType] || STATUS_ICONS.custom : null;
 
               return (
                 <Link key={`${item.type}-${item.id}`} href={href} prefetch={true} className="flex gap-3 md:gap-4 p-3 md:p-4 rounded-xl border transition-colors hover:shadow-md relative" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}>
                   {/* Collect button - with status echo */}
-                  <button
+                  <StatusIconButton
+                    listType={movieStatus?.listType || null}
                     onClick={(e) => handleCollectClick(e, item)}
                     onDoubleClick={(e) => handleCollectDoubleClick(e, item)}
-                    className="absolute top-2 right-2 z-10 w-6 h-6 md:w-7 md:h-7 rounded-full flex items-center justify-center backdrop-blur-sm transition-colors"
-                    style={{
-                      backgroundColor: statusConfig ? `${statusConfig.color}cc` : 'rgba(0,0,0,0.4)',
-                      color: '#fff',
-                    }}
-                    title={statusConfig ? `${statusConfig.label}（单击提示，双击选择片单）` : '收藏'}
-                  >
-                    {statusConfig ? (
-                      statusConfig.fill ? (
-                        <svg className="w-3.5 h-3.5 md:w-4 md:h-4" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1">
-                          <path d={statusConfig.icon} />
-                        </svg>
-                      ) : (
-                        <svg className="w-3.5 h-3.5 md:w-4 md:h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d={statusConfig.icon} />
-                        </svg>
-                      )
-                    ) : (
-                      <svg className="w-3.5 h-3.5 md:w-4 md:h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                      </svg>
-                    )}
-                  </button>
+                    size="md"
+                    className="absolute top-2 right-2 z-10"
+                  />
                   {/* Poster */}
                   <div className="shrink-0 w-[80px] md:w-[110px] aspect-[2/3] rounded-lg overflow-hidden">
                     <img src={item.cover || `https://picsum.photos/seed/${item.id}/110/165`} alt={item.title} className="w-full h-full object-cover" loading="lazy" />
@@ -297,19 +254,13 @@ function SearchContent() {
                     </div>
                     {/* Meta row */}
                     <div className="flex items-center gap-2 flex-wrap text-xs" style={{ color: 'var(--text-muted)' }}>
-                      <span className="px-1.5 py-0.5 rounded text-[10px] md:text-xs" style={{ border: '1px solid var(--accent)', color: 'var(--accent)' }}>{typeLabel[item.type]}</span>
+                      <TypeBadge contentType={item.type} />
                       {item.year && <span>{item.year}</span>}
                       {regionStr && <span>{regionStr}</span>}
                       {durationOrEp && <span>{durationOrEp}</span>}
                     </div>
                     {/* Genre tags */}
-                    {genreArr.length > 0 && (
-                      <div className="flex items-center gap-1 flex-wrap">
-                        {genreArr.slice(0, 4).map((g, i) => (
-                          <span key={i} className="text-[10px] px-1.5 py-0.5 rounded" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}>{g}</span>
-                        ))}
-                      </div>
-                    )}
+                    <GenreTags genres={genreArr} />
                     {/* Director */}
                     {directorArr.length > 0 && <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}><span className="font-medium" style={{ color: 'var(--text-secondary)' }}>导演:</span> {directorArr.join(' / ')}</p>}
                     {/* Actor - PC only */}

@@ -4,6 +4,8 @@
 import Link from 'next/link';
 import { useState, useRef, useCallback } from 'react';
 import { parseRegion, parseGenre, cleanTitle as cleanTitleUtil } from '@/lib/utils';
+import { getStatusConfig } from '@/lib/contentConstants';
+import { StatusIconButton, GenreTags } from '@/components/ContentShared';
 import { useUserStore } from '@/stores/userStore';
 import { listApi } from '@/lib/userApi';
 import { useToast } from '@/components/Toast';
@@ -29,38 +31,7 @@ interface MovieCardProps {
   movieStatus?: { listType: string; listName: string } | null;
 }
 
-// Status icon config: priority watched > watching > want_to_watch > custom
-const STATUS_ICONS: Record<string, { icon: string; label: string; color: string; fill: boolean }> = {
-  watched: {
-    icon: 'M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z',
-    label: '看过',
-    color: 'var(--status-watched)',
-    fill: true,
-  },
-  watching: {
-    icon: 'M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z',
-    label: '在看',
-    color: 'var(--status-watching)',
-    fill: false,
-  },
-  want_to_watch: {
-    icon: 'M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z',
-    label: '想看',
-    color: 'var(--status-want)',
-    fill: true,
-  },
-  custom: {
-    icon: 'M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z',
-    label: '已收藏',
-    color: 'var(--status-custom)',
-    fill: true,
-  },
-};
 
-function getStatusConfig(listType: string | undefined) {
-  if (!listType) return null;
-  return STATUS_ICONS[listType] || STATUS_ICONS.custom;
-}
 
 export default function MovieCard({
   id,
@@ -86,8 +57,7 @@ export default function MovieCard({
   const contentType = type || 'movie';
   const clickTimer = useRef<NodeJS.Timeout | null>(null);
 
-  const statusConfig = getStatusConfig(movieStatus?.listType);
-  const isInDefaultList = movieStatus?.listType === 'want_to_watch' || movieStatus?.listType === 'watching' || movieStatus?.listType === 'watched';
+  const statusConfig = movieStatus?.listType ? getStatusConfig(movieStatus.listType) : null;
 
   // Single click: toggle want_to_watch or show toast for other statuses
   const handleSingleClick = useCallback(async (e: React.MouseEvent) => {
@@ -164,53 +134,15 @@ export default function MovieCard({
   // Render collect/status button
   const renderCollectButton = () => {
     if (!showCollect) return null;
-
-    if (statusConfig) {
-      // Movie is in a list - show status icon
-      return (
-        <button
-          onClick={handleCollectClick}
-          className="absolute top-1 left-1 z-10 w-5 h-5 md:w-7 md:h-7 rounded-full flex items-center justify-center backdrop-blur-sm transition-colors hover:scale-110"
-          style={{
-            backgroundColor: `${statusConfig.color}cc`,
-            color: '#fff',
-          }}
-          title={`${statusConfig.label}（单击提示，双击选择片单）`}
-        >
-          {toggling ? (
-            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-          ) : statusConfig.fill ? (
-            <svg className="w-3 h-3 md:w-4 md:h-4" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1">
-              <path d={statusConfig.icon} />
-            </svg>
-          ) : (
-            <svg className="w-3 h-3 md:w-4 md:h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d={statusConfig.icon} />
-            </svg>
-          )}
-        </button>
-      );
-    }
-
-    // Default: heart icon (not in any list)
     return (
-      <button
+      <StatusIconButton
+        listType={movieStatus?.listType || null}
         onClick={handleCollectClick}
-        className="absolute top-1 left-1 z-10 w-5 h-5 md:w-7 md:h-7 rounded-full flex items-center justify-center backdrop-blur-sm transition-colors hover:scale-110"
-        style={{
-          backgroundColor: 'rgba(0,0,0,0.4)',
-          color: '#fff',
-        }}
-        title="想看（单击加入，双击选择片单）"
-      >
-        {toggling ? (
-          <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-        ) : (
-          <svg className="w-3 h-3 md:w-4 md:h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-          </svg>
-        )}
-      </button>
+        onDoubleClick={handleCollectClick}
+        size="sm"
+        className="absolute top-1 left-1 z-10"
+        loading={toggling}
+      />
     );
   };
 
@@ -305,23 +237,7 @@ export default function MovieCard({
             ) : null}
           </div>
 
-          {genreArr.length > 0 ? (
-            <div className="flex items-center gap-1 flex-wrap overflow-hidden" style={{ maxHeight: '22px' }}>
-              {genreArr.map((g, i) => (
-                <span
-                  key={i}
-                  className="text-[9px] md:text-[10px] px-1 py-0.5 rounded shrink-0"
-                  style={{
-                    backgroundColor: 'var(--bg-primary)',
-                    color: 'var(--text-secondary)',
-                    border: '1px solid var(--border-color)',
-                  }}
-                >
-                  {g}
-                </span>
-              ))}
-            </div>
-          ) : null}
+          <GenreTags genres={genreArr} />
         </div>
       </div>
     </Link>

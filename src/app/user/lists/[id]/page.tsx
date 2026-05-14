@@ -11,6 +11,8 @@ import Pagination from '@/components/Pagination';
 import CustomSelect from '@/components/CustomSelect';
 import SortDirButton from '@/components/SortDirButton';
 import { cleanTitle as cleanTitleUtil } from '@/lib/utils';
+import { parseJsonArr, TYPE_LABELS } from '@/lib/contentConstants';
+import { TypeBadge, GenreTags } from '@/components/ContentShared';
 import dynamic from 'next/dynamic';
 
 const NoteEditModal = dynamic(() => import('@/components/NoteEditModal'), { ssr: false });
@@ -18,10 +20,6 @@ const Dialog = dynamic(() => import('@/components/Dialog'), { ssr: false });
 
 const contentTypeRoute: Record<string, string> = {
   movie: '/movie', drama: '/drama', variety: '/variety', anime: '/anime', short_drama: '/short',
-};
-
-const typeLabel: Record<string, string> = {
-  movie: '电影', drama: '电视剧', variety: '综艺', anime: '动漫', short_drama: '短剧',
 };
 
 const SORT_OPTIONS_BY_TYPE: Record<string, { label: string; value: string }[]> = {
@@ -57,11 +55,7 @@ const TYPE_FILTERS = [
   { label: '短剧', value: 'short_drama' },
 ];
 
-function parseJsonArr(val: string | string[] | undefined): string[] {
-  if (!val) return [];
-  if (Array.isArray(val)) return val;
-  try { const p = JSON.parse(val); return Array.isArray(p) ? p : []; } catch { return []; }
-}
+
 
 // 时间显示规则：
 // 1天内：x小时前 想看/开始看/看过/收藏
@@ -308,20 +302,14 @@ export default function ListDetailPage() {
 
                       {/* Meta row */}
                       <div className="flex items-center gap-2 flex-wrap text-xs" style={{ color: 'var(--text-muted)' }}>
-                        <span className="px-1.5 py-0.5 rounded text-[10px] md:text-xs" style={{ border: '1px solid var(--accent)', color: 'var(--accent)' }}>{typeLabel[item.contentType] || item.contentType}</span>
+                        <TypeBadge contentType={item.contentType} />
                         {item.year && <span>{item.year}</span>}
                         {regionArr.length > 0 && <span className="truncate max-w-[8em]">{regionArr.join('/')}</span>}
                         {item.duration && <span>{item.duration}分钟</span>}
                         {item.totalEpisode && <span>{item.totalEpisode}集</span>}
                       </div>
 
-                      {genreArr.length > 0 && (
-                        <div className="flex items-center gap-1 flex-wrap">
-                          {genreArr.slice(0, 3).map((g, i) => (
-                            <span key={i} className="text-[10px] px-1.5 py-0.5 rounded" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}>{g}</span>
-                          ))}
-                        </div>
-                      )}
+                      <GenreTags genres={genreArr} max={3} />
 
                       {directorArr.length > 0 && <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}><span className="font-medium" style={{ color: 'var(--text-secondary)' }}>导演:</span> {directorArr.join(' / ')}</p>}
                     </div>
