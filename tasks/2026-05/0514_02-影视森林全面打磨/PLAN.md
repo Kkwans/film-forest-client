@@ -88,5 +88,6 @@
 - [x] admin-ui: 加载状态/空状态/错误处理全面升级（2026-05-14，6个文件）
 - [x] client-server: 后端性能优化（2026-05-14，N+1修复+堆排序+25个索引）
 - [x] admin-server: 后端性能优化（2026-05-14，资源统计GROUP BY+爬虫重复删除清理）
-- [ ] 后端代码规范统一
+- [x] admin-server + client-server: 后端代码规范统一（2026-05-14，ContentController/SearchController重构+GlobalExceptionHandler 5层异常处理+BusinessException）
+- [x] 后端代码规范统一（2026-05-14，第19轮：ContentController重构+SearchController重构+GlobalExceptionHandler升级+BusinessException）
 - [x] 后端性能优化（N+1查询、索引）
