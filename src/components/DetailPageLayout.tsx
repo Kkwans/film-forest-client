@@ -15,6 +15,8 @@ import {
   DetailTabBar,
   EpisodeGrid,
   OnlineResourceGrid,
+  ResourceTabs,
+  CopyableResourceList,
   DetailPageSkeleton,
   DetailNotFound,
 } from '@/components/detail/DetailComponents';
@@ -88,20 +90,45 @@ export default function DetailPageLayout({
   const [synopsisExpanded, setSynopsisExpanded] = useState(false);
   const [selectedEpisode, setSelectedEpisode] = useState<number | null>(null);
   const [onlineResources, setOnlineResources] = useState<any[]>([]);
+  const [magnetResources, setMagnetResources] = useState<any[]>([]);
+  const [cloudResources, setCloudResources] = useState<any[]>([]);
   const [loadingResources, setLoadingResources] = useState(false);
+  const [resourceError, setResourceError] = useState(false);
+  const [downloadTab, setDownloadTab] = useState<'magnet' | 'cloud'>('magnet');
+  const [copiedId, setCopiedId] = useState<number | null>(null);
 
   const ds = useDetailStatus(item.id, contentType);
 
-  // Fetch online resources when episode is selected
+  // Fetch all resources when episode changes
   useEffect(() => {
     if (!hasEpisodes) return;
     setLoadingResources(true);
-    resourceApi
-      .online(contentType, item.id, selectedEpisode ?? undefined)
-      .then((res) => setOnlineResources(res.data?.data || []))
-      .catch(() => setOnlineResources([]))
+    setResourceError(false);
+    const ep = selectedEpisode ?? undefined;
+
+    Promise.all([
+      resourceApi.online(contentType, item.id, ep).then((res) => setOnlineResources(res.data?.data || [])),
+      resourceApi.magnet(contentType, item.id, ep).then((res) => setMagnetResources(res.data?.data || [])),
+      resourceApi.cloud(contentType, item.id, ep).then((res) => setCloudResources(res.data?.data || [])),
+    ])
+      .catch(() => {
+        setOnlineResources([]);
+        setMagnetResources([]);
+        setCloudResources([]);
+        setResourceError(true);
+      })
       .finally(() => setLoadingResources(false));
   }, [contentType, item.id, selectedEpisode, hasEpisodes]);
+
+  const copyLink = (url: string, resId: number) => {
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(url).then(() => { setCopiedId(resId); setTimeout(() => setCopiedId(null), 2000); });
+    } else {
+      const ta = document.createElement('textarea'); ta.value = url; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); setCopiedId(resId); setTimeout(() => setCopiedId(null), 2000); } catch {} document.body.removeChild(ta);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -186,12 +213,72 @@ export default function DetailPageLayout({
             onSelect={setSelectedEpisode}
             label={episodeLabel}
           />
-          <OnlineResourceGrid
-            resources={onlineResources}
-            loading={loadingResources}
-            selectedEpisode={selectedEpisode}
-            episodeLabel={episodeLabel}
-          />
+
+          {resourceError ? (
+            <section className="rounded-xl p-5 border">
+              <div className="text-center py-8">
+                <p className="text-3xl mb-2">😵</p>
+                <p className="text-sm text-muted-foreground">资源加载失败</p>
+                <button
+                  onClick={() => {
+                    const ep = selectedEpisode ?? undefined;
+                    setLoadingResources(true);
+                    setResourceError(false);
+                    Promise.all([
+                      resourceApi.online(contentType, item.id, ep).then((res) => setOnlineResources(res.data?.data || [])),
+                      resourceApi.magnet(contentType, item.id, ep).then((res) => setMagnetResources(res.data?.data || [])),
+                      resourceApi.cloud(contentType, item.id, ep).then((res) => setCloudResources(res.data?.data || [])),
+                    ]).catch(() => setResourceError(true)).finally(() => setLoadingResources(false));
+                  }}
+                  className="mt-3 text-sm font-medium text-accent active:opacity-70"
+                >
+                  重新加载
+                </button>
+              </div>
+            </section>
+          ) : (
+            <>
+              <OnlineResourceGrid
+                resources={onlineResources}
+                loading={loadingResources}
+                selectedEpisode={selectedEpisode}
+                episodeLabel={episodeLabel}
+              />
+
+              <ResourceTabs
+                tabs={[
+                  { key: 'magnet', label: '磁力链接', count: magnetResources.length },
+                  { key: 'cloud', label: '网盘资源', count: cloudResources.length },
+                ]}
+                activeTab={downloadTab}
+                onTabChange={(key) => setDownloadTab(key as 'magnet' | 'cloud')}
+              >
+                {loadingResources ? (
+                  <div className="space-y-2">
+                    {[1, 2].map(i => (
+                      <div key={i} className="h-14 rounded-lg animate-pulse bg-background" />
+                    ))}
+                  </div>
+                ) : downloadTab === 'magnet' ? (
+                  <CopyableResourceList
+                    resources={magnetResources.map((r: any) => ({ id: r.id, title: r.title, url: r.magnetUrl, resolution: r.resolution }))}
+                    copiedId={copiedId}
+                    onCopy={copyLink}
+                    icon="🧲"
+                    emptyText={selectedEpisode ? `该${episodeLabel}暂无磁力链接` : '暂无磁力链接'}
+                  />
+                ) : (
+                  <CopyableResourceList
+                    resources={cloudResources.map((r: any) => ({ id: r.id, title: r.title, url: r.shareUrl, storageName: r.storageName }))}
+                    copiedId={copiedId}
+                    onCopy={copyLink}
+                    icon="☁️"
+                    emptyText={selectedEpisode ? `该${episodeLabel}暂无网盘资源` : '暂无网盘资源'}
+                  />
+                )}
+              </ResourceTabs>
+            </>
+          )}
         </>
       )}
     </div>
