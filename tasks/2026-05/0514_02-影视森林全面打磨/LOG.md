@@ -929,3 +929,59 @@ client-ui 内容展示相关组件和页面：MovieCard、SearchPage、ListDetai
 
 ### 总结
 内容展示组件提取完成。STATUS_ICONS、parseJsonArr、GenreTags、TypeBadge、StatusIconButton 五个重复模式已提取为共享组件/常量。MovieCard、SearchPage、ListDetailPage 三处消费端代码显著精简，后续修改只需改一处。代码复用与组件化优化维度全部完成。
+
+---
+
+## 2026-05-14 19:11 - 第21轮：注释完整性 + 配置合理性
+
+### 排查范围
+admin-server + client-server 全部 Java 文件（Entity/Service/ServiceImpl/Controller/Mapper/Config）
+
+### 发现的问题
+
+**问题1（严重）：admin-server 端口配置错误**
+- `application.yml` 配置 `server.port: 8080`
+- 但 Dockerfile EXPOSE 8081，next.config.ts 代理到 8081
+- 导致 admin-server 实际监听 8080，外部请求发到 8081 无法到达
+
+**问题2（中等）：日志级别不合理**
+- 两个后端 `logging.level.com.filmforest: debug`，生产环境打印大量 SQL 日志
+- `com.filmforest.mapper: debug` 在生产环境无意义，影响性能
+
+**问题3（轻微）：大量 Java 文件缺少 Javadoc 注释**
+- Entity: 8 个文件无类级注释（admin+client 的 Anime/Drama/ShortDrama/Variety）
+- Service 接口: 10 个文件无接口和方法注释
+- ServiceImpl: 11 个文件无类级注释
+- Controller: 5 个文件无类级注释
+- Mapper: 17 个文件无接口注释
+- 其他: CrawlerSchedule/CrawlerTaskLog 实体无注释
+
+### 修复内容
+
+**1. 修复 admin-server 端口配置**
+- `application.yml`: `server.port: 8080` → `server.port: 8081`
+- 匹配 Dockerfile EXPOSE 8081 和 next.config.ts 代理配置
+
+**2. 修复日志级别**
+- admin-server: `com.filmforest: debug` → `info`，`mapper: debug` → `warn`
+- client-server: 同上
+
+**3. 全面补全 Javadoc 注释（56 个文件）**
+- Entity 类: 8 个文件 — 类级注释（数据表对应关系）
+- Service 接口: 10 个文件 — 接口注释 + 方法注释（参数/返回值/异常）
+- ServiceImpl: 11 个文件 — 类级注释
+- Controller: 5 个文件 — 类级注释（功能说明）
+- Mapper: 17 个文件 — 接口注释（数据表说明）
+- 其他: 2 个实体文件 — 类级注释
+
+### 涉及文件（59个）
+- admin-server: 27 个 Java 文件 + application.yml
+- client-server: 30 个 Java 文件 + application.yml
+- PLAN.md + LOG.md
+
+### 部署
+- commit: a6427fc → GitHub push ✅
+- 需要在 NAS 重新构建部署（端口修复影响运行）
+
+### 总结
+注释完整性和配置合理性两个维度全部完成。修复了 admin-server 端口配置错误（严重 bug）和生产环境日志级别问题，56 个 Java 文件全面补全 Javadoc 注释。PLAN.md 所有排查项已全部打勾 ✅
