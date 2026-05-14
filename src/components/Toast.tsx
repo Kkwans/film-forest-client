@@ -22,19 +22,19 @@ export function useToast() {
 
 const TOAST_CONFIG: Record<string, { bg: string; icon: string }> = {
   success: {
-    bg: 'linear-gradient(135deg, rgba(34,197,94,0.95), rgba(22,163,74,0.95))',
+    bg: 'var(--toast-success-bg, linear-gradient(135deg, rgba(34,197,94,0.95), rgba(22,163,74,0.95)))',
     icon: 'M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z',
   },
   error: {
-    bg: 'linear-gradient(135deg, rgba(239,68,68,0.95), rgba(220,38,38,0.95))',
+    bg: 'var(--toast-error-bg, linear-gradient(135deg, rgba(239,68,68,0.95), rgba(220,38,38,0.95)))',
     icon: 'M12 8v4m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z',
   },
   warning: {
-    bg: 'linear-gradient(135deg, rgba(245,158,11,0.95), rgba(217,119,6,0.95))',
+    bg: 'var(--toast-warning-bg, linear-gradient(135deg, rgba(245,158,11,0.95), rgba(217,119,6,0.95)))',
     icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z',
   },
   info: {
-    bg: 'linear-gradient(135deg, rgba(59,130,246,0.95), rgba(37,99,235,0.95))',
+    bg: 'var(--toast-info-bg, linear-gradient(135deg, rgba(59,130,246,0.95), rgba(37,99,235,0.95)))',
     icon: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z',
   },
 };
