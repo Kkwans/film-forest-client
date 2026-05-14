@@ -52,6 +52,8 @@ export default function NoteEditModal({ open, onClose, onSave, initialNote = '',
     setSaving(true);
     try {
       await onSave(note, isWatchedList && rating > 0 ? rating : undefined);
+    } catch (err) {
+      console.error('Save note failed:', err);
     } finally {
       setSaving(false);
     }

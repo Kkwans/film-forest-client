@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { listApi, type UserList } from '@/lib/userApi';
+import { useToast } from '@/components/Toast';
 
 interface WatchedModalProps {
   open: boolean;
@@ -36,6 +37,7 @@ export default function WatchedModal({ open, onClose, movieId, contentType, movi
   const [saving, setSaving] = useState(false);
   const [watchedListId, setWatchedListId] = useState<number | null>(null);
   const starsRef = useRef<HTMLDivElement>(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
     if (open) {
@@ -60,8 +62,11 @@ export default function WatchedModal({ open, onClose, movieId, contentType, movi
         rating: rating > 0 ? rating : undefined,
         note: note.trim() || undefined,
       });
+      showToast('评价保存成功', 'success');
       onClose();
-    } catch {} finally {
+    } catch {
+      showToast('保存失败，请稍后再试', 'error');
+    } finally {
       setSaving(false);
     }
   };

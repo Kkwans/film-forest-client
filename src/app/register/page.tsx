@@ -17,6 +17,9 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // 输入时自动清除错误
+  const clearError = () => { if (error) setError(''); };
+
   const validate = (): string | null => {
     if (!username.trim()) return '请输入用户名';
     if (username.trim().length < 3 || username.trim().length > 20) return '用户名长度需要 3-20 个字符';
@@ -82,7 +85,7 @@ export default function RegisterPage() {
             <input
               type="text"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => { setUsername(e.target.value); clearError(); }}
               placeholder="请输入用户名"
               autoComplete="username"
               className="w-full h-11 px-4 rounded-lg text-sm border outline-none transition-colors"
@@ -101,7 +104,7 @@ export default function RegisterPage() {
             <input
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => { setPassword(e.target.value); clearError(); }}
               placeholder="请输入密码"
               autoComplete="new-password"
               className="w-full h-11 px-4 rounded-lg text-sm border outline-none transition-colors"
@@ -120,7 +123,7 @@ export default function RegisterPage() {
             <input
               type="password"
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              onChange={(e) => { setConfirmPassword(e.target.value); clearError(); }}
               placeholder="请再次输入密码"
               autoComplete="new-password"
               className="w-full h-11 px-4 rounded-lg text-sm border outline-none transition-colors"

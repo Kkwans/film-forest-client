@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useUserStore, hasStoredToken } from '@/stores/userStore';
 import { listApi, type UserList } from '@/lib/userApi';
+import { useToast } from '@/components/Toast';
 
 const DEFAULT_LISTS = [
   { key: 'want_to_watch', label: '想看', icon: '🔖', apiName: '想看' },
@@ -16,6 +17,7 @@ const DEFAULT_LISTS = [
 export default function ProfilePage() {
   const router = useRouter();
   const { user, isAuthenticated, logout } = useUserStore();
+  const { showToast } = useToast();
   const [lists, setLists] = useState<UserList[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -47,15 +49,20 @@ export default function ProfilePage() {
 
   const handleCreate = async () => {
     if (!newName.trim()) return;
+    if (newName.trim().length > 30) {
+      showToast('片单名称不能超过30个字符', 'warning');
+      return;
+    }
     setCreating(true);
     try {
       await listApi.create({ name: newName.trim(), description: newDesc.trim() || undefined });
       setNewName('');
       setNewDesc('');
       setShowCreate(false);
+      showToast('片单创建成功', 'success');
       loadLists();
     } catch {
-      // silent
+      showToast('创建失败，请稍后再试', 'error');
     } finally {
       setCreating(false);
     }

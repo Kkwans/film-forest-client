@@ -180,8 +180,10 @@ export default function ListDetailPage() {
       await listApi.removeItem(listId, { movieId: confirmDelete.movieId, contentType: confirmDelete.contentType });
       setItems((prev) => prev.filter((i) => i.id !== confirmDelete.id));
       if (list) setList({ ...list, itemCount: Math.max(0, list.itemCount - 1) });
-      showToast('已从片单移除', 'error');
-    } catch {} finally { setRemoving(null); setConfirmDelete(null); }
+      showToast('已从片单移除', 'info');
+    } catch {
+      showToast('移除失败，请稍后再试', 'error');
+    } finally { setRemoving(null); setConfirmDelete(null); }
   };
 
   const handleNoteSave = async (note: string, rating?: number) => {
@@ -189,7 +191,11 @@ export default function ListDetailPage() {
     try {
       await listApi.updateItem(listId, { movieId: noteEdit.item.movieId, contentType: noteEdit.item.contentType, note: note || undefined, rating });
       setItems(prev => prev.map(i => i.id === noteEdit.item.id ? { ...i, note: note || i.note, userRating: rating ?? i.userRating } : i));
-    } catch (err) { console.error('Update item failed:', err); }
+      showToast('已更新', 'success');
+    } catch (err) {
+      console.error('Update item failed:', err);
+      showToast('更新失败，请稍后再试', 'error');
+    }
     setNoteEdit(null);
   };
 

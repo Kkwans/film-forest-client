@@ -223,6 +223,7 @@ export default function CollectModal({ open, onClose, movieId, contentType, movi
                       value={addNote}
                       onChange={(e) => setAddNote(e.target.value)}
                       placeholder="添加备注（可选）"
+                      maxLength={200}
                       className="flex-1 h-8 px-3 rounded-lg text-xs border outline-none"
                       style={{ backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
                       onKeyDown={(e) => { if (e.key === 'Enter') { handleToggle(showNoteInput, addNote); setShowNoteInput(null); setAddNote(''); } if (e.key === 'Escape') { setShowNoteInput(null); setAddNote(''); } }}
@@ -290,6 +291,7 @@ export default function CollectModal({ open, onClose, movieId, contentType, movi
                               value={addNote}
                               onChange={(e) => setAddNote(e.target.value)}
                               placeholder="添加备注（可选）"
+                              maxLength={200}
                               className="flex-1 h-8 px-3 rounded-lg text-xs border outline-none"
                               style={{ backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
                               onKeyDown={(e) => { if (e.key === 'Enter') handleToggle(list.id, addNote); if (e.key === 'Escape') setShowNoteInput(null); }}
