@@ -58,10 +58,12 @@ export default function MovieListClient({ initialItems, initialTotal, contentTyp
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(1);
   const [initialized, setInitialized] = useState(false);
+  const [error, setError] = useState(false);
 
   const fetchData = useCallback(async (p: number, g: string, r: string, y: string, s: string, yf?: string, yt?: string) => {
     setLoading(true);
     try {
+      setError(false);
       const parts: string[] = [`page=${p}`, 'size=24'];
       if (g !== '全部') parts.push(`genre=${encodeURIComponent(g)}`);
       if (r !== '全部') parts.push(`region=${encodeURIComponent(r)}`);
@@ -90,6 +92,7 @@ export default function MovieListClient({ initialItems, initialTotal, contentTyp
     } catch {
       setItems([]);
       setTotal(0);
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -112,8 +115,26 @@ export default function MovieListClient({ initialItems, initialTotal, contentTyp
     setPage(1);
     if (key === 'genre') setGenre(value);
     else if (key === 'region') setRegion(value);
-    else if (key === 'year') setYear(value);
+    else if (key === 'year') { setYear(value); if (value !== '自定义') { setYearFrom(''); setYearTo(''); } }
     else if (key === 'sort') setSort(value);
+  };
+
+  const activeFilterCount = [
+    genre !== '全部',
+    region !== '全部',
+    year !== '全部',
+  ].filter(Boolean).length;
+
+  const resetAllFilters = () => {
+    setGenre('全部');
+    setRegion('全部');
+    setYear('全部');
+    setYearFrom('');
+    setYearTo('');
+    setSort('latest');
+    setSortDir('desc');
+    setPage(1);
+    if (!initialized) setInitialized(true);
   };
 
   // Fetch movie statuses for collect button echo
@@ -122,9 +143,21 @@ export default function MovieListClient({ initialItems, initialTotal, contentTyp
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-foreground" >
-        {contentType === 'movie' ? '电影' : contentType === 'drama' ? '电视剧' : contentType === 'variety' ? '综艺' : contentType === 'anime' ? '动漫' : '短剧'}
-      </h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-foreground">
+          {contentType === 'movie' ? '电影' : contentType === 'drama' ? '电视剧' : contentType === 'variety' ? '综艺' : contentType === 'anime' ? '动漫' : '短剧'}
+        </h1>
+        {activeFilterCount > 0 && (
+          <button
+            onClick={resetAllFilters}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-colors"
+            style={{ background: 'var(--accent-light)', color: 'var(--accent)', border: '1px solid var(--accent)' }}
+          >
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            清除筛选 ({activeFilterCount})
+          </button>
+        )}
+      </div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2">
@@ -148,7 +181,7 @@ export default function MovieListClient({ initialItems, initialTotal, contentTyp
         </div>
       </div>
       <div className="flex items-center justify-between">
-        <span className="text-sm text-muted-foreground" >{loading ? '加载中...' : `共 ${total} 部`}</span>
+        <span className="text-sm text-muted-foreground">{loading ? '加载中...' : error ? '加载失败' : `共 ${total} 部`}</span>
         <div className="flex items-center gap-2">
           <CustomSelect value={sort} options={SORT_OPTIONS} onChange={v => updateFilter('sort', v)} />
           <SortDirButton direction={sortDir} onToggle={() => setSortDir(d => d === 'desc' ? 'asc' : 'desc')} />
@@ -175,11 +208,26 @@ export default function MovieListClient({ initialItems, initialTotal, contentTyp
             ))}
           </div>
 
-          {items.length === 0 && (
+          {items.length === 0 && !error && (
             <div className="text-center py-16">
               <p className="text-4xl mb-3">🎬</p>
-              <p className="text-sm mb-1 text-secondary-foreground" >暂无匹配的内容</p>
-              <p className="text-xs text-muted-foreground" >试试调整筛选条件？</p>
+              <p className="text-sm mb-1 text-secondary-foreground">暂无匹配的内容</p>
+              <p className="text-xs text-muted-foreground">试试调整筛选条件？</p>
+            </div>
+          )}
+
+          {items.length === 0 && error && (
+            <div className="text-center py-16">
+              <p className="text-4xl mb-3">😵</p>
+              <p className="text-sm mb-1 text-secondary-foreground">数据加载失败</p>
+              <p className="text-xs text-muted-foreground mb-3">网络或服务异常，请稍后再试</p>
+              <button
+                onClick={() => fetchData(page, genre, region, year, sort, yearFrom, yearTo)}
+                className="px-4 py-2 rounded-full text-xs font-medium cursor-pointer transition-colors"
+                style={{ background: 'var(--accent)', color: '#fff' }}
+              >
+                重新加载
+              </button>
             </div>
           )}
 
