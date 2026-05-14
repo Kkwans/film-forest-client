@@ -9,7 +9,7 @@ export default function Footer() {
       }}
     >
       <div className="max-w-7xl mx-auto px-4 text-center">
-        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-xs text-muted-foreground" >
           © 2026 影视森林. 仅供学习交流.
         </p>
       </div>

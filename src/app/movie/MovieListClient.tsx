@@ -122,7 +122,7 @@ export default function MovieListClient({ initialItems, initialTotal, contentTyp
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
+      <h1 className="text-2xl font-bold text-foreground" >
         {contentType === 'movie' ? '电影' : contentType === 'drama' ? '电视剧' : contentType === 'variety' ? '综艺' : contentType === 'anime' ? '动漫' : '短剧'}
       </h1>
 
@@ -142,13 +142,13 @@ export default function MovieListClient({ initialItems, initialTotal, contentTyp
           <FilterChip key={y} label={y} active={year === y} onClick={() => { setYear(y); setYearFrom(''); setYearTo(''); }} />
         ))}
         <div className="flex items-center gap-1">
-          <input type="number" placeholder="起始年" value={yearFrom} onChange={e => { setYearFrom(e.target.value); setYear('自定义'); }} className="w-20 h-8 px-2 rounded-lg text-sm border outline-none" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }} />
-          <span className="text-sm" style={{ color: 'var(--text-muted)' }}>-</span>
-          <input type="number" placeholder="结束年" value={yearTo} onChange={e => { setYearTo(e.target.value); setYear('自定义'); }} className="w-20 h-8 px-2 rounded-lg text-sm border outline-none" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }} />
+          <input type="number" placeholder="起始年" value={yearFrom} onChange={e => { setYearFrom(e.target.value); setYear('自定义'); }} className="w-20 h-8 px-2 rounded-lg text-sm border outline-none bg-card border-border text-foreground"  />
+          <span className="text-sm text-muted-foreground" >-</span>
+          <input type="number" placeholder="结束年" value={yearTo} onChange={e => { setYearTo(e.target.value); setYear('自定义'); }} className="w-20 h-8 px-2 rounded-lg text-sm border outline-none bg-card border-border text-foreground"  />
         </div>
       </div>
       <div className="flex items-center justify-between">
-        <span className="text-sm" style={{ color: 'var(--text-muted)' }}>{loading ? '加载中...' : `共 ${total} 部`}</span>
+        <span className="text-sm text-muted-foreground" >{loading ? '加载中...' : `共 ${total} 部`}</span>
         <div className="flex items-center gap-2">
           <CustomSelect value={sort} options={SORT_OPTIONS} onChange={v => updateFilter('sort', v)} />
           <SortDirButton direction={sortDir} onToggle={() => setSortDir(d => d === 'desc' ? 'asc' : 'desc')} />
@@ -160,9 +160,9 @@ export default function MovieListClient({ initialItems, initialTotal, contentTyp
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4" style={{ minHeight: '60vh' }}>
           {Array.from({ length: 12 }).map((_, i) => (
             <div key={i} className="flex flex-col gap-2 animate-pulse">
-              <div className="aspect-[2/3] rounded-xl" style={{ backgroundColor: 'var(--bg-card)' }} />
-              <div className="h-4 w-3/4 rounded" style={{ backgroundColor: 'var(--bg-card)' }} />
-              <div className="h-3 w-1/2 rounded" style={{ backgroundColor: 'var(--bg-card)' }} />
+              <div className="aspect-[2/3] rounded-xl bg-card"  />
+              <div className="h-4 w-3/4 rounded bg-card"  />
+              <div className="h-3 w-1/2 rounded bg-card"  />
             </div>
           ))}
         </div>
@@ -178,8 +178,8 @@ export default function MovieListClient({ initialItems, initialTotal, contentTyp
           {items.length === 0 && (
             <div className="text-center py-16">
               <p className="text-4xl mb-3">🎬</p>
-              <p className="text-sm mb-1" style={{ color: 'var(--text-secondary)' }}>暂无匹配的内容</p>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>试试调整筛选条件？</p>
+              <p className="text-sm mb-1 text-secondary-foreground" >暂无匹配的内容</p>
+              <p className="text-xs text-muted-foreground" >试试调整筛选条件？</p>
             </div>
           )}
 

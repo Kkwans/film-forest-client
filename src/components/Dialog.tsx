@@ -97,12 +97,12 @@ export default function Dialog({
             </svg>
           </div>
           <div className="min-w-0 flex-1">
-            <h3 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>{title}</h3>
+            <h3 className="text-base font-bold text-foreground" >{title}</h3>
           </div>
         </div>
 
         {/* Message */}
-        <p className="text-sm leading-relaxed mb-6" style={{ color: 'var(--text-secondary)' }}>{message}</p>
+        <p className="text-sm leading-relaxed mb-6 text-secondary-foreground" >{message}</p>
 
         {/* Actions */}
         <div className="flex gap-3 justify-end">
@@ -110,7 +110,7 @@ export default function Dialog({
             onClick={onClose}
             disabled={loading}
             className="px-4 py-2 rounded-lg text-sm font-medium border transition-colors"
-            style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+
           >
             {cancelText}
           </button>

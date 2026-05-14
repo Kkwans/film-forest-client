@@ -64,7 +64,7 @@ export function SearchResultSkeleton({ count = 4 }: { count?: number }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="flex gap-3 md:gap-4 p-3 md:p-4 rounded-xl border" style={{ borderColor: 'var(--border-color)' }}>
+        <div key={i} className="flex gap-3 md:gap-4 p-3 md:p-4 rounded-xl border border-border" >
           <Skeleton className="w-[80px] md:w-[110px] aspect-[2/3] rounded-lg shrink-0" />
           <div className="flex-1 space-y-2">
             <Skeleton className="h-5 w-3/4 rounded" />
@@ -98,7 +98,7 @@ export function StatCardSkeleton({ count = 4 }: { count?: number }) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="p-4 rounded-xl border" style={{ borderColor: 'var(--border-color)' }}>
+        <div key={i} className="p-4 rounded-xl border border-border" >
           <Skeleton className="h-4 w-16 rounded mb-2" />
           <Skeleton className="h-8 w-24 rounded" />
         </div>

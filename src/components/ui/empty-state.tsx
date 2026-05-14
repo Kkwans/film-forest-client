@@ -19,11 +19,11 @@ export function EmptyState({ icon = '📭', title, description, action }: EmptyS
   return (
     <div className="flex flex-col items-center justify-center py-12 md:py-16 px-4">
       <span className="text-4xl mb-3">{icon}</span>
-      <h3 className="text-lg font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
+      <h3 className="text-lg font-medium mb-1 text-secondary-foreground" >
         {title}
       </h3>
       {description && (
-        <p className="text-sm text-center max-w-md" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-sm text-center max-w-md text-muted-foreground" >
           {description}
         </p>
       )}
@@ -31,7 +31,7 @@ export function EmptyState({ icon = '📭', title, description, action }: EmptyS
         <button
           onClick={action.onClick}
           className="mt-4 px-4 py-2 rounded-lg text-sm font-medium text-white transition-opacity hover:opacity-90"
-          style={{ backgroundColor: 'var(--accent)' }}
+
         >
           {action.label}
         </button>

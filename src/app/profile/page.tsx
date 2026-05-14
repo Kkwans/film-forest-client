@@ -94,11 +94,11 @@ export default function ProfilePage() {
       {/* User Info Card */}
       <div
         className="rounded-2xl border p-6 flex items-center gap-4"
-        style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)' }}
+
       >
         <div
           className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold shrink-0"
-          style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+
         >
           {user?.avatar ? (
             <img src={user.avatar} alt="" className="w-full h-full rounded-full object-cover" />
@@ -107,11 +107,11 @@ export default function ProfilePage() {
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <h1 className="text-xl font-bold truncate" style={{ color: 'var(--text-primary)' }}>
+          <h1 className="text-xl font-bold truncate text-foreground" >
             {user?.nickname || user?.username || '用户'}
           </h1>
           {user?.nickname && user?.username && (
-            <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-sm mt-0.5 text-muted-foreground" >
               @{user.username}
             </p>
           )}
@@ -131,7 +131,7 @@ export default function ProfilePage() {
 
       {/* Default Lists */}
       <section>
-        <h2 className="text-lg font-bold mb-3" style={{ color: 'var(--text-primary)' }}>
+        <h2 className="text-lg font-bold mb-3 text-foreground" >
           我的标记
         </h2>
         <div className="grid grid-cols-3 gap-3">
@@ -149,11 +149,11 @@ export default function ProfilePage() {
                 }}
               >
                 <span className="text-3xl">{d.icon}</span>
-                <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                <span className="text-sm font-medium text-foreground" >
                   {d.label}
                 </span>
                 {matched && (
-                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                  <span className="text-xs text-muted-foreground" >
                     {matched.itemCount} 部
                   </span>
                 )}
@@ -166,13 +166,13 @@ export default function ProfilePage() {
       {/* Custom Lists */}
       <section>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
+          <h2 className="text-lg font-bold text-foreground" >
             我的片单
           </h2>
           <button
             onClick={() => setShowCreate(!showCreate)}
             className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-            style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="5" x2="12" y2="19" />
@@ -186,7 +186,7 @@ export default function ProfilePage() {
         {showCreate && (
           <div
             className="rounded-xl border p-4 mb-3"
-            style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)' }}
+
           >
             <input
               type="text"
@@ -216,7 +216,7 @@ export default function ProfilePage() {
               <button
                 onClick={() => setShowCreate(false)}
                 className="px-4 py-2 rounded-lg text-sm font-medium border"
-                style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+
               >
                 取消
               </button>
@@ -224,7 +224,7 @@ export default function ProfilePage() {
                 onClick={handleCreate}
                 disabled={creating || !newName.trim()}
                 className="px-4 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50"
-                style={{ backgroundColor: 'var(--accent)' }}
+
               >
                 {creating ? '创建中...' : '创建'}
               </button>
@@ -235,22 +235,22 @@ export default function ProfilePage() {
         {loading ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-16 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--bg-card)' }} />
+              <div key={i} className="h-16 rounded-xl animate-pulse bg-card"  />
             ))}
           </div>
         ) : customLists.length === 0 ? (
           <div
             className="text-center py-12 rounded-xl border"
-            style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)' }}
+
           >
             <p className="text-3xl mb-2">📋</p>
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-sm text-muted-foreground" >
               还没有创建过片单
             </p>
             <button
               onClick={() => setShowCreate(true)}
               className="mt-3 text-sm font-medium"
-              style={{ color: 'var(--accent)' }}
+
             >
               <span className="inline-flex items-center gap-1">创建第一个片单 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg></span>
             </button>
@@ -268,22 +268,22 @@ export default function ProfilePage() {
                 }}
               >
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium text-sm truncate" style={{ color: 'var(--text-primary)' }}>
+                  <p className="font-medium text-sm truncate text-foreground" >
                     {list.name}
                   </p>
                   {list.description && (
-                    <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-xs mt-0.5 truncate text-muted-foreground" >
                       {list.description}
                     </p>
                   )}
                 </div>
                 <div className="flex items-center gap-2 shrink-0 ml-3">
-                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                  <span className="text-xs text-muted-foreground" >
                     {list.itemCount} 部
                   </span>
                   <svg
                     className="w-4 h-4"
-                    style={{ color: 'var(--text-muted)' }}
+
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"

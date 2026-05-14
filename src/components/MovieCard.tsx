@@ -171,7 +171,7 @@ export default function MovieCard({
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/20 backdrop-blur-[1px]">
             <div
               className="w-6 h-6 border-2 border-current border-t-transparent rounded-full animate-spin"
-              style={{ color: 'var(--accent)' }}
+
             />
           </div>
         )}
@@ -187,7 +187,7 @@ export default function MovieCard({
           {rating != null && (
             <span
               className="absolute top-2 right-2 px-1.5 py-0.5 rounded text-xs font-bold text-white"
-              style={{ backgroundColor: 'var(--accent)' }}
+
             >
               {rating.toFixed(1)}
             </span>
@@ -219,19 +219,19 @@ export default function MovieCard({
         <div className="p-2 md:p-3 flex flex-col gap-1" style={{ minHeight: '72px' }}>
           <p
             className="font-medium text-xs md:text-sm truncate min-w-0 group-hover:text-[var(--accent)] transition-colors"
-            style={{ color: 'var(--text-primary)' }}
+
           >
             {cleanTitle || '\u00A0'}
           </p>
 
           <div className="flex items-center gap-1 flex-wrap">
             {year ? (
-              <span className="text-[10px] md:text-xs" style={{ color: 'var(--text-muted)' }}>
+              <span className="text-[10px] md:text-xs text-muted-foreground" >
                 {year}
               </span>
             ) : null}
             {regionDisplay ? (
-              <span className="text-[10px] md:text-xs truncate max-w-[5em]" style={{ color: 'var(--text-muted)' }}>
+              <span className="text-[10px] md:text-xs truncate max-w-[5em] text-muted-foreground" >
                 {regionDisplay}
               </span>
             ) : null}

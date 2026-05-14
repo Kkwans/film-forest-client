@@ -63,10 +63,10 @@ function LoginForm() {
       >
         <div className="text-center mb-8">
           <span className="text-4xl">🌲</span>
-          <h1 className="text-2xl font-bold mt-3" style={{ color: 'var(--text-primary)' }}>
+          <h1 className="text-2xl font-bold mt-3 text-foreground" >
             登录影视森林
           </h1>
-          <p className="text-sm mt-2" style={{ color: 'var(--text-muted)' }}>
+          <p className="text-sm mt-2 text-muted-foreground" >
             欢迎回来
           </p>
         </div>
@@ -75,7 +75,7 @@ function LoginForm() {
           {error && (
             <div
               className="px-4 py-3 rounded-lg text-sm flex items-center gap-2"
-              style={{ backgroundColor: 'var(--danger-bg)', color: 'var(--danger)', border: '1px solid var(--danger-border)' }}
+
             >
               <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10" />
@@ -87,7 +87,7 @@ function LoginForm() {
           )}
 
           <div>
-            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+            <label className="block text-sm font-medium mb-1.5 text-secondary-foreground" >
               用户名
             </label>
             <input
@@ -106,7 +106,7 @@ function LoginForm() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+            <label className="block text-sm font-medium mb-1.5 text-secondary-foreground" >
               密码
             </label>
             <input
@@ -128,15 +128,15 @@ function LoginForm() {
             type="submit"
             disabled={loading}
             className="w-full h-11 rounded-lg text-white text-sm font-medium transition-opacity disabled:opacity-50"
-            style={{ backgroundColor: 'var(--accent)' }}
+
           >
             {loading ? '登录中...' : '登录'}
           </button>
         </div>
 
-        <p className="text-center text-sm mt-6" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-center text-sm mt-6 text-muted-foreground" >
           还没有账号？{' '}
-          <Link href="/register" className="font-medium hover:underline" style={{ color: 'var(--accent)' }}>
+          <Link href="/register" className="font-medium hover:underline bg-accent" >
             注册
           </Link>
         </p>
@@ -147,7 +147,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="text-center py-16" style={{ color: 'var(--text-secondary)' }}>加载中...</div>}>
+    <Suspense fallback={<div className="text-center py-16 text-secondary-foreground" >加载中...</div>}>
       <LoginForm />
     </Suspense>
   );

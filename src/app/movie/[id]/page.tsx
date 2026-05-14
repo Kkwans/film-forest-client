@@ -50,8 +50,8 @@ export default async function MovieDetailPage({ params }: { params: Promise<{ id
   if (!movie) {
     return (
       <div className="text-center py-16">
-        <p style={{ color: 'var(--text-secondary)' }}>电影不存在</p>
-        <Link href="/movie" className="text-sm mt-4 inline-block" style={{ color: 'var(--accent)' }}>← 返回电影列表</Link>
+        <p className="text-secondary-foreground" >电影不存在</p>
+        <Link href="/movie" className="text-sm mt-4 inline-block bg-accent" >← 返回电影列表</Link>
       </div>
     );
   }

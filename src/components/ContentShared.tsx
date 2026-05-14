@@ -90,7 +90,7 @@ export function TypeBadge({ contentType, size = 'sm' }: { contentType: string; s
   return (
     <span
       className={`px-1.5 py-0.5 rounded ${sizeClass}`}
-      style={{ border: '1px solid var(--accent)', color: 'var(--accent)' }}
+
     >
       {label}
     </span>

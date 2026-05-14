@@ -86,8 +86,8 @@ export default function CategoryPage() {
     <div className="flex flex-col gap-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl md:text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>全部分类</h1>
-        <p className="text-sm mt-2" style={{ color: 'var(--text-secondary)' }}>选择你想看的内容类型</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-foreground" >全部分类</h1>
+        <p className="text-sm mt-2 text-secondary-foreground" >选择你想看的内容类型</p>
       </div>
 
       {/* Category Grid */}

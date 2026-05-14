@@ -97,7 +97,7 @@ export default function MovieDetailClient({ movie, magnetResources, cloudResourc
             {movie.duration && <InfoRow label="片长">{movie.duration}分钟</InfoRow>}
             {movie.updatedAt && (
               <InfoRow label="更新">
-                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                <span className="text-xs text-muted-foreground" >
                   {new Date(movie.updatedAt).toLocaleString('zh-CN')}
                 </span>
               </InfoRow>

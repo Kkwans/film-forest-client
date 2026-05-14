@@ -85,7 +85,7 @@ export default function Header() {
             <span className="text-2xl">🌲</span>
             <span
               className="text-lg font-bold"
-              style={{ color: 'var(--accent)' }}
+
             >
               影视森林
             </span>
@@ -129,7 +129,7 @@ export default function Header() {
               <button
                 type="submit"
                 className="h-9 px-4 rounded-lg text-white text-sm font-medium transition-colors shrink-0"
-                style={{ backgroundColor: 'var(--accent)' }}
+
               >
                 搜索
               </button>
@@ -152,11 +152,11 @@ export default function Header() {
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                   className="flex items-center gap-1.5 px-1.5 py-1 rounded-lg transition-colors"
-                  style={{ color: 'var(--text-primary)' }}
+
                 >
                   <div
                     className="w-8 h-8 rounded-full flex items-center justify-center text-xs"
-                    style={{ backgroundColor: 'var(--accent-light, #1a2332)', color: 'var(--accent)' }}
+                    
                   >
                     {user.avatar ? (
                       <img src={user.avatar} alt="" className="w-full h-full rounded-full object-cover" />
@@ -179,20 +179,20 @@ export default function Header() {
                 {userMenuOpen && (
                   <div
                     className="absolute right-0 top-full mt-1 w-40 rounded-lg border shadow-lg py-1 z-50"
-                    style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}
+
                   >
                     <Link
                       href="/profile"
                       onClick={() => setUserMenuOpen(false)}
                       className="block px-4 py-2 text-sm transition-colors hover:opacity-80"
-                      style={{ color: 'var(--text-primary)' }}
+
                     >
                       我的
                     </Link>
                     <button
                       onClick={() => { setUserMenuOpen(false); logout(); window.location.href = '/'; }}
                       className="block w-full text-left px-4 py-2 text-sm transition-colors hover:opacity-80"
-                      style={{ color: 'var(--text-secondary)' }}
+
                     >
                       退出登录
                     </button>
@@ -204,7 +204,7 @@ export default function Header() {
                 <Link
                   href="/login"
                   className="px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors"
-                  style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+
                 >
                   登录
                 </Link>
@@ -258,13 +258,13 @@ export default function Header() {
       >
         <div className="flex flex-col p-4 gap-1">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>
+            <span className="text-base font-bold text-foreground" >
               导航菜单
             </span>
             <button
               onClick={() => setMenuOpen(false)}
               className="w-8 h-8 flex items-center justify-center rounded-md"
-              style={{ color: 'var(--text-secondary)' }}
+
             >
               ✕
             </button>

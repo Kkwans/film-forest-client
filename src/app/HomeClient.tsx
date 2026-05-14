@@ -33,8 +33,8 @@ function HorizontalSection({ title, href, items, type }: { title: string; href: 
   return (
     <section>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{title}</h2>
-        <Link href={href} className="text-sm font-medium flex items-center gap-1 hover:gap-2 transition-all" style={{ color: 'var(--accent)' }}>
+        <h2 className="text-xl font-bold text-foreground" >{title}</h2>
+        <Link href={href} className="text-sm font-medium flex items-center gap-1 hover:gap-2 transition-all bg-accent" >
           更多
           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
         </Link>
@@ -72,14 +72,14 @@ export default function HomeClient({ initialMovies, initialDramas, initialVariet
       <section className="relative overflow-hidden rounded-2xl" style={{ background: 'linear-gradient(135deg, var(--bg-secondary), var(--bg-card))', border: '1px solid var(--border-color)' }}>
         <div className="relative px-6 py-6 md:px-16 md:py-14">
           <div className="max-w-2xl">
-            <div className="inline-block px-3 py-1 rounded-full text-xs font-medium mb-4" style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>影视资源聚合平台</div>
-            <h1 className="text-3xl md:text-5xl font-bold mb-4 leading-tight" style={{ color: 'var(--text-primary)' }}>
-              发现精彩<span style={{ color: 'var(--accent)' }}>影视世界</span>
+            <div className="inline-block px-3 py-1 rounded-full text-xs font-medium mb-4 bg-accent-light text-accent" >影视资源聚合平台</div>
+            <h1 className="text-3xl md:text-5xl font-bold mb-4 leading-tight text-foreground" >
+              发现精彩<span className="bg-accent" >影视世界</span>
             </h1>
-            <p className="text-base md:text-lg mb-6 md:mb-8" style={{ color: 'var(--text-secondary)' }}>聚合全网优质影视资源，电影、剧集、综艺、动漫一网打尽</p>
+            <p className="text-base md:text-lg mb-6 md:mb-8 text-secondary-foreground" >聚合全网优质影视资源，电影、剧集、综艺、动漫一网打尽</p>
             <div className="flex flex-col sm:flex-row gap-3">
               <Link href="/movie" className="inline-flex items-center justify-center px-6 py-3 rounded-full font-medium transition-colors text-sm text-white" style={{ background: 'var(--accent)' }}>探索电影</Link>
-              <Link href="/search" className="inline-flex items-center justify-center px-6 py-3 rounded-full font-medium transition-colors text-sm" style={{ border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>搜索影视</Link>
+              <Link href="/search" className="inline-flex items-center justify-center px-6 py-3 rounded-full font-medium transition-colors text-sm border border-border text-secondary-foreground" >搜索影视</Link>
             </div>
           </div>
         </div>

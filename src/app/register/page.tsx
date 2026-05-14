@@ -60,10 +60,10 @@ export default function RegisterPage() {
       >
         <div className="text-center mb-8">
           <span className="text-4xl">🌲</span>
-          <h1 className="text-2xl font-bold mt-3" style={{ color: 'var(--text-primary)' }}>
+          <h1 className="text-2xl font-bold mt-3 text-foreground" >
             注册影视森林
           </h1>
-          <p className="text-sm mt-2" style={{ color: 'var(--text-muted)' }}>
+          <p className="text-sm mt-2 text-muted-foreground" >
             创建你的影视收藏夹
           </p>
         </div>
@@ -72,15 +72,15 @@ export default function RegisterPage() {
           {error && (
             <div
               className="px-4 py-3 rounded-lg text-sm"
-              style={{ backgroundColor: 'var(--danger-bg)', color: 'var(--danger)', border: '1px solid var(--danger-border)' }}
+
             >
               {error}
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
-              用户名 <span className="text-xs" style={{ color: 'var(--text-muted)' }}>(3-20个字符)</span>
+            <label className="block text-sm font-medium mb-1.5 text-secondary-foreground" >
+              用户名 <span className="text-xs text-muted-foreground" >(3-20个字符)</span>
             </label>
             <input
               type="text"
@@ -98,8 +98,8 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
-              密码 <span className="text-xs" style={{ color: 'var(--text-muted)' }}>(至少6位)</span>
+            <label className="block text-sm font-medium mb-1.5 text-secondary-foreground" >
+              密码 <span className="text-xs text-muted-foreground" >(至少6位)</span>
             </label>
             <input
               type="password"
@@ -117,7 +117,7 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+            <label className="block text-sm font-medium mb-1.5 text-secondary-foreground" >
               确认密码
             </label>
             <input
@@ -136,8 +136,8 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
-              邮箱 <span className="text-xs" style={{ color: 'var(--text-muted)' }}>(可选)</span>
+            <label className="block text-sm font-medium mb-1.5 text-secondary-foreground" >
+              邮箱 <span className="text-xs text-muted-foreground" >(可选)</span>
             </label>
             <input
               type="email"
@@ -158,15 +158,15 @@ export default function RegisterPage() {
             type="submit"
             disabled={loading}
             className="w-full h-11 rounded-lg text-white text-sm font-medium transition-opacity disabled:opacity-50"
-            style={{ backgroundColor: 'var(--accent)' }}
+
           >
             {loading ? '注册中...' : '注册'}
           </button>
         </form>
 
-        <p className="text-center text-sm mt-6" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-center text-sm mt-6 text-muted-foreground" >
           已有账号？{' '}
-          <Link href="/login" className="font-medium hover:underline" style={{ color: 'var(--accent)' }}>
+          <Link href="/login" className="font-medium hover:underline bg-accent" >
             登录
           </Link>
         </p>

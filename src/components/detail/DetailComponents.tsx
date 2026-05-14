@@ -19,14 +19,14 @@ interface BreadcrumbItem {
 
 export function DetailBreadcrumb({ items }: { items: BreadcrumbItem[] }) {
   return (
-    <nav className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-muted)' }}>
+    <nav className="flex items-center gap-2 text-sm text-muted-foreground" >
       {items.map((item, i) => (
         <span key={i} className="flex items-center gap-2">
           {i > 0 && <span>›</span>}
           {item.href ? (
-            <Link href={item.href} style={{ color: 'var(--text-secondary)' }}>{item.label}</Link>
+            <Link className="text-secondary-foreground" href={item.href} >{item.label}</Link>
           ) : (
-            <span style={{ color: 'var(--text-primary)' }}>{item.label}</span>
+            <span className="text-foreground" >{item.label}</span>
           )}
         </span>
       ))}
@@ -56,10 +56,10 @@ export function DetailCover({ src, alt, seed }: { src?: string; alt: string; see
 
 export function DetailTitle({ title, year }: { title: string; year?: number }) {
   return (
-    <h1 className="text-2xl md:text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>
+    <h1 className="text-2xl md:text-3xl font-bold text-foreground" >
       {title}
       {year != null && year > 0 && (
-        <span className="text-lg font-normal ml-2" style={{ color: 'var(--text-muted)' }}>
+        <span className="text-lg font-normal ml-2 text-muted-foreground" >
           ({year})
         </span>
       )}
@@ -134,12 +134,12 @@ export function SynopsisSection({ text, expanded, onToggle }: {
   return (
     <section
       className="rounded-xl p-5 border"
-      style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}
+
     >
-      <h2 className="text-lg font-bold mb-3" style={{ color: 'var(--text-primary)' }}>简介</h2>
+      <h2 className="text-lg font-bold mb-3 text-foreground" >简介</h2>
       <p
         className={`text-sm leading-relaxed ${expanded ? '' : 'line-clamp-3'}`}
-        style={{ color: 'var(--text-secondary)' }}
+
       >
         {text}
       </p>
@@ -147,7 +147,7 @@ export function SynopsisSection({ text, expanded, onToggle }: {
         <button
           onClick={onToggle}
           className="mt-3 text-sm font-medium active:opacity-70 transition-opacity flex items-center gap-1"
-          style={{ color: 'var(--accent)' }}
+
         >
           {expanded ? '收起' : '展开全部'}
           <svg
@@ -178,7 +178,7 @@ export function DetailTabBar<T extends string>({ tabs, active, onChange }: {
   onChange: (key: T) => void;
 }) {
   return (
-    <div className="flex gap-6 border-b" style={{ borderColor: 'var(--border-color)' }}>
+    <div className="flex gap-6 border-b border-border" >
       {tabs.map(tab => (
         <button
           key={tab.key}
@@ -213,7 +213,7 @@ export function EpisodeGrid({ total, selected, onSelect, label = '集', gridCols
 
   return (
     <div>
-      <h3 className="font-medium mb-3" style={{ color: 'var(--text-primary)' }}>
+      <h3 className="font-medium mb-3 text-foreground" >
         全部{label} ({total}{label})
       </h3>
       <div className={`grid ${gridCols} gap-2`}>
@@ -258,17 +258,17 @@ export function OnlineResourceGrid({ resources, loading, emptyText = '暂无在�
   return (
     <section
       className="rounded-xl p-5 border"
-      style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}
+
     >
-      <h3 className="font-bold mb-4" style={{ color: 'var(--text-primary)' }}>{title}</h3>
+      <h3 className="font-bold mb-4 text-foreground" >{title}</h3>
       {loading ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[1, 2].map(i => (
-            <div key={i} className="h-12 rounded-lg animate-pulse" style={{ backgroundColor: 'var(--bg-primary)' }} />
+            <div key={i} className="h-12 rounded-lg animate-pulse bg-background"  />
           ))}
         </div>
       ) : resources.length === 0 ? (
-        <p className="text-center py-8 text-sm" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-center py-8 text-sm text-muted-foreground" >
           {selectedEpisode ? `该${episodeLabel}暂无资源` : emptyText}
         </p>
       ) : (
@@ -280,12 +280,12 @@ export function OnlineResourceGrid({ resources, loading, emptyText = '暂无在�
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-between px-4 py-3 rounded-lg border transition-colors hover:opacity-80"
-              style={{ backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)' }}
+              
             >
-              <span className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+              <span className="text-sm font-medium truncate text-foreground" >
                 {r.sourceName}
               </span>
-              <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: 'var(--accent)', color: '#fff' }}>
+              <span className="text-xs px-2 py-0.5 rounded bg-accent text-white" >
                 播放
               </span>
             </a>
@@ -316,7 +316,7 @@ export function CopyableResourceList({ resources, copiedId, onCopy, icon, emptyT
   emptyText: string;
 }) {
   if (resources.length === 0) {
-    return <p className="text-center py-8 text-sm" style={{ color: 'var(--text-muted)' }}>{emptyText}</p>;
+    return <p className="text-center py-8 text-sm text-muted-foreground" >{emptyText}</p>;
   }
 
   return (
@@ -325,16 +325,16 @@ export function CopyableResourceList({ resources, copiedId, onCopy, icon, emptyT
         <div
           key={r.id}
           className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 p-3 rounded-lg border"
-          style={{ backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)' }}
+          
         >
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <span className="text-lg shrink-0">{icon}</span>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium break-all sm:truncate" style={{ color: 'var(--text-primary)' }}>
+              <p className="text-sm font-medium break-all sm:truncate text-foreground" >
                 {r.resolution && (
                   <span
                     className="inline-block px-1.5 py-0.5 rounded text-xs font-medium mr-2"
-                    style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+
                   >
                     {r.resolution}
                   </span>
@@ -342,7 +342,7 @@ export function CopyableResourceList({ resources, copiedId, onCopy, icon, emptyT
                 {r.title || '资源链接'}
               </p>
               {r.storageName && (
-                <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{r.storageName}</p>
+                <p className="text-xs mt-0.5 text-muted-foreground" >{r.storageName}</p>
               )}
             </div>
           </div>
@@ -372,9 +372,9 @@ export function ResourceTabs({ tabs, activeTab, onTabChange, children }: {
   return (
     <section
       className="rounded-xl p-5 border"
-      style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}
+
     >
-      <h2 className="text-lg font-bold mb-4" style={{ color: 'var(--text-primary)' }}>下载资源</h2>
+      <h2 className="text-lg font-bold mb-4 text-foreground" >下载资源</h2>
       <DetailTabBar
         tabs={tabs}
         active={activeTab}
@@ -395,12 +395,12 @@ export function DetailPageSkeleton() {
       <div className="flex flex-col sm:flex-row gap-6">
         <div
           className="w-full sm:w-48 md:w-64 aspect-[2/3] rounded-xl max-w-[256px] mx-auto sm:mx-0"
-          style={{ backgroundColor: 'var(--bg-card)' }}
+
         />
         <div className="flex-1 space-y-4">
-          <div className="h-8 w-48 rounded" style={{ backgroundColor: 'var(--bg-card)' }} />
-          <div className="h-4 w-32 rounded" style={{ backgroundColor: 'var(--bg-card)' }} />
-          <div className="h-4 w-64 rounded" style={{ backgroundColor: 'var(--bg-card)' }} />
+          <div className="h-8 w-48 rounded bg-card"  />
+          <div className="h-4 w-32 rounded bg-card"  />
+          <div className="h-4 w-64 rounded bg-card"  />
         </div>
       </div>
     </div>
@@ -418,8 +418,8 @@ export function DetailNotFound({ message = '内容不存在', backHref = '/', ba
 }) {
   return (
     <div className="text-center py-16">
-      <p style={{ color: 'var(--text-secondary)' }}>{message}</p>
-      <Link href={backHref} className="text-sm mt-4 inline-block" style={{ color: 'var(--accent)' }}>
+      <p className="text-secondary-foreground" >{message}</p>
+      <Link href={backHref} className="text-sm mt-4 inline-block bg-accent" >
         ← {backLabel}
       </Link>
     </div>

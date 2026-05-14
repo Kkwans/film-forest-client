@@ -58,7 +58,7 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
             {page}
           </button>
         ) : (
-          <span key={idx} className="px-1 text-sm" style={{ color: 'var(--text-muted)' }}>
+          <span key={idx} className="px-1 text-sm text-muted-foreground" >
             {page}
           </span>
         )

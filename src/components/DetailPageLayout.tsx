@@ -163,7 +163,7 @@ export default function DetailPageLayout({
             )}
             {item.updatedAt && (
               <InfoRow label="更新">
-                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                <span className="text-xs text-muted-foreground" >
                   {new Date(item.updatedAt).toLocaleString('zh-CN')}
                 </span>
               </InfoRow>

@@ -210,18 +210,18 @@ export default function ListDetailPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <nav className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-muted)' }}>
-        <Link href="/profile" className="hover:underline" style={{ color: 'var(--text-secondary)' }}>我的</Link>
+      <nav className="flex items-center gap-2 text-sm text-muted-foreground" >
+        <Link href="/profile" className="hover:underline text-secondary-foreground" >我的</Link>
         <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
-        <span style={{ color: 'var(--text-primary)' }}>{list?.name || '片单'}</span>
+        <span className="text-foreground" >{list?.name || '片单'}</span>
       </nav>
 
       {/* Title row with type filter */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{list?.name || '片单'}</h1>
-          {list?.description && <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>{list.description}</p>}
-          <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>共 {list?.itemCount ?? items.length} 部</p>
+          <h1 className="text-2xl font-bold text-foreground" >{list?.name || '片单'}</h1>
+          {list?.description && <p className="text-sm mt-1 text-muted-foreground" >{list.description}</p>}
+          <p className="text-sm mt-1 text-muted-foreground" >共 {list?.itemCount ?? items.length} 部</p>
         </div>
         {items.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
@@ -244,12 +244,12 @@ export default function ListDetailPage() {
       )}
 
       {loading ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">{Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-40 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--bg-card)' }} />)}</div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 bg-card">{Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-40 rounded-xl animate-pulse"  />)}</div>
       ) : items.length === 0 ? (
-        <div className="text-center py-16 rounded-xl border" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)' }}>
+        <div className="text-center py-16 rounded-xl border bg-card border-border" >
           <p className="text-4xl mb-3">📭</p>
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>片单还是空的，去发现更多影视吧</p>
-          <Link href="/" className="inline-flex items-center gap-1 mt-3 text-sm font-medium" style={{ color: 'var(--accent)' }}>去首页看看 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg></Link>
+          <p className="text-sm text-muted-foreground" >片单还是空的，去发现更多影视吧</p>
+          <Link href="/" className="inline-flex items-center gap-1 mt-3 text-sm font-medium bg-accent" >去首页看看 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg></Link>
         </div>
       ) : (
         <>
@@ -268,14 +268,14 @@ export default function ListDetailPage() {
                 <div key={item.id} className="relative" onTouchStart={(e) => handleTouchStart(e, item.id)} onTouchEnd={handleTouchEnd}>
                   {/* Mobile swipe action buttons - behind the card */}
                   <div className="md:hidden absolute right-0 top-0 bottom-0 flex items-center gap-1 pr-2 z-0" style={{ opacity: isSwiped ? 1 : 0, transition: 'opacity 0.2s' }}>
-                    <button onClick={() => setNoteEdit({ item, listId })} className="h-8 px-3 rounded-lg text-xs font-medium text-white" style={{ backgroundColor: 'var(--accent)' }}>{isWatchedList ? '编辑' : '备注'}</button>
-                    <button onClick={() => setConfirmDelete(item)} className="h-8 px-3 rounded-lg text-xs font-medium text-white" style={{ backgroundColor: 'var(--danger)' }}>移除</button>
+                    <button onClick={() => setNoteEdit({ item, listId })} className="h-8 px-3 rounded-lg text-xs font-medium text-white bg-accent" >{isWatchedList ? '编辑' : '备注'}</button>
+                    <button onClick={() => setConfirmDelete(item)} className="h-8 px-3 rounded-lg text-xs font-medium text-white text-destructive" >移除</button>
                   </div>
                   {/* Card wrapper that slides */}
                   <div className="flex flex-col" style={{ transform: isSwiped ? 'translateX(-120px)' : 'translateX(0)', transition: 'transform 0.2s ease', position: 'relative', zIndex: 1 }}>
                   {/* Main card - remove bottom radius when note card exists */}
                   <div className={`flex gap-3 md:gap-4 p-3 md:p-4 border transition-all hover:shadow-md group ${(hasNote || hasRating) ? 'rounded-t-xl rounded-b-none' : 'rounded-xl'}`}
-                    style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}>
+                    >
 
                     <Link href={href} className="shrink-0">
                       <div className="relative w-[80px] h-[110px] md:w-[100px] md:h-[140px] rounded-lg overflow-hidden">
@@ -291,17 +291,17 @@ export default function ListDetailPage() {
 
                     <div className="flex-1 min-w-0 flex flex-col gap-1">
                       <div className="flex items-start justify-between gap-2">
-                        <Link href={href} className="font-bold text-sm md:text-base line-clamp-1 no-underline hover:text-[var(--accent)] transition-colors flex-1 min-w-0" style={{ color: 'var(--text-primary)' }}>
+                        <Link href={href} className="font-bold text-sm md:text-base line-clamp-1 no-underline hover:text-[var(--accent)] transition-colors flex-1 min-w-0 text-foreground" >
                           {cleanTitleUtil(item.title) || '未知标题'}
                         </Link>
                         {/* PC delete button */}
-                        <button onClick={() => setConfirmDelete(item)} className="hidden md:flex w-6 h-6 rounded items-center justify-center transition-colors opacity-0 group-hover:opacity-100 hover:text-red-500 shrink-0" style={{ color: 'var(--text-muted)' }} title="移除">
+                        <button onClick={() => setConfirmDelete(item)} className="hidden md:flex w-6 h-6 rounded items-center justify-center transition-colors opacity-0 group-hover:opacity-100 hover:text-red-500 shrink-0 text-muted-foreground"  title="移除">
                           <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
                         </button>
                       </div>
 
                       {/* Meta row */}
-                      <div className="flex items-center gap-2 flex-wrap text-xs" style={{ color: 'var(--text-muted)' }}>
+                      <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground" >
                         <TypeBadge contentType={item.contentType} />
                         {item.year && <span>{item.year}</span>}
                         {regionArr.length > 0 && <span className="truncate max-w-[8em]">{regionArr.join('/')}</span>}
@@ -311,23 +311,23 @@ export default function ListDetailPage() {
 
                       <GenreTags genres={genreArr} max={3} />
 
-                      {directorArr.length > 0 && <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}><span className="font-medium" style={{ color: 'var(--text-secondary)' }}>导演:</span> {directorArr.join(' / ')}</p>}
+                      {directorArr.length > 0 && <p className="text-xs truncate text-muted-foreground text-secondary-foreground" ><span className="font-medium" >导演:</span> {directorArr.join(' / ')}</p>}
                     </div>
                   </div>
 
                   {/* Note hook card - attached below */}
                   {(hasNote || hasRating) && (
-                    <div className="mx-0 -mt-px px-3 py-2.5 text-xs relative" style={{ backgroundColor: 'var(--notes-bg)', borderRadius: '0 0 12px 12px', border: '1px solid var(--border-color)', borderTop: '1px solid var(--border-color)' }}>
-                      <button onClick={() => setNoteEdit({ item, listId })} className="absolute top-2 right-2 w-5 h-5 rounded flex items-center justify-center transition-colors hover:opacity-70" style={{ color: 'var(--text-muted)' }} title={isWatchedList ? '编辑评分和感想' : '编辑备注'}>
+                    <div className="mx-0 -mt-px px-3 py-2.5 text-xs relative bg-muted border border-border rounded-b-xl" >
+                      <button onClick={() => setNoteEdit({ item, listId })} className="absolute top-2 right-2 w-5 h-5 rounded flex items-center justify-center transition-colors hover:opacity-70 text-muted-foreground"  title={isWatchedList ? '编辑评分和感想' : '编辑备注'}>
                         <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                       </button>
                       <div className="pr-6">
                         {/* Line 1: time label + rating stars + score */}
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{formatTimeWithLabel(item.addedAt || '', listType)}</span>
+                          <span className="text-[11px] text-muted-foreground" >{formatTimeWithLabel(item.addedAt || '', listType)}</span>
                           {hasRating && (
                             <>
-                              <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>|</span>
+                              <span className="text-[11px] text-muted-foreground" >|</span>
                               <span className="text-[10px] font-medium" style={{ color: getRatingStyle(Number(item.userRating)).color }}>{getRatingLabel(Number(item.userRating))}</span>
                               <span className="inline-flex items-center gap-px">
                                 {Array.from({ length: 10 }, (_, si) => (
@@ -343,7 +343,7 @@ export default function ListDetailPage() {
                           )}
                         </div>
                         {/* Line 2: note content */}
-                        {hasNote && <p className="mt-1.5 line-clamp-2 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{item.note}</p>}
+                        {hasNote && <p className="mt-1.5 line-clamp-2 leading-relaxed text-secondary-foreground" >{item.note}</p>}
                       </div>
                     </div>
                   )}
@@ -355,8 +355,8 @@ export default function ListDetailPage() {
           {filteredItems.length === 0 && items.length > 0 && (
             <div className="text-center py-12">
               <p className="text-3xl mb-2">🔍</p>
-              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>该类型下暂无内容</p>
-              <button onClick={() => setTypeFilter('')} className="mt-2 text-sm font-medium" style={{ color: 'var(--accent)' }}>查看全部</button>
+              <p className="text-sm text-muted-foreground" >该类型下暂无内容</p>
+              <button onClick={() => setTypeFilter('')} className="mt-2 text-sm font-medium bg-accent" >查看全部</button>
             </div>
           )}
           {totalPages > 1 && <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={(p) => loadList(p)} />}
