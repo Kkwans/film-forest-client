@@ -15,25 +15,25 @@
 ## 二、排查维度
 
 ### 2.1 前端排查项
-- [ ] 页面布局和响应式适配
-- [ ] 组件样式一致性（主题色、间距、字体）
-- [ ] 表单校验和错误处理
-- [ ] 加载状态和空状态展示
-- [ ] 交互反馈（Toast/Dialog/Loading）
+- [x] 页面布局和响应式适配 (admin-ui + client-ui)
+- [x] 组件样式一致性（主题色、间距、字体）(admin-ui + client-ui)
+- [x] 表单校验和错误处理
+- [x] 加载状态和空状态展示
+- [x] 交互反馈（Toast/Dialog/Loading）(admin-ui + client-ui)
 - [ ] 性能优化（无用代码、重复逻辑）
-- [ ] 深色/浅色模式兼容
-- [ ] 移动端适配
+- [x] 深色/浅色模式兼容 (admin-ui + client-ui)
+- [x] 移动端适配 (admin-ui + client-ui)
 
 ### 2.2 后端排查项
-- [ ] API 接口完整性
-- [ ] 错误处理和异常返回
-- [ ] 日志记录规范
-- [ ] 数据校验
+- [x] API 接口完整性 (admin-server + client-server)
+- [x] 错误处理和异常返回 (admin-server + client-server)
+- [x] 日志记录规范 (admin-server + client-server)
+- [x] 数据校验 (admin-server + client-server)
 - [ ] 性能优化（N+1查询、索引）
-- [ ] 安全性（SQL注入、权限校验）
+- [x] 安全性（SQL注入、权限校验）(admin-server + client-server)
 
 ### 2.3 通用排查项
-- [ ] 代码风格一致性
+- [x] 代码风格一致性 (admin-ui + client-ui 硬编码颜色全面清理)
 - [ ] 注释完整性
 - [ ] 无用代码清理
 - [ ] 配置合理性
@@ -59,7 +59,19 @@
 - [x] admin-ui: 仪表盘/统计/资源页响应式（2026-05-13）
 - [x] admin-ui: 数据统计页硬编码颜色修复（2026-05-14）
 - [x] admin-ui: 系统设置页硬编码颜色修复（2026-05-14）
+- [x] admin-ui: 资源管理页硬编码颜色修复（2026-05-14）
+- [x] admin-ui: 爬虫管理页硬编码颜色修复（2026-05-14）
+- [x] admin-ui: 公共组件(dialog/select/toast)硬编码颜色修复（2026-05-14）
+- [x] admin-ui: auth-provider + dashboard + login + content 遗漏清理（2026-05-14）
+- [x] client-ui: 全页面+组件硬编码颜色全面清理（2026-05-14，17个文件73处）
+- [x] client-ui: CSS 变量扩展（状态色/评分色/徽章色/危险色/深色模式）（2026-05-14）
+- [x] client-ui: 响应式适配审查（2026-05-14，已完善）
+- [x] admin-server: 后端代码审查（2026-05-14，质量良好）
+- [x] client-server: 后端代码审查（2026-05-14，质量良好）
+- [x] client-ui: 表单校验和错误处理（2026-05-14，6个文件33处修复）
 
 ## 五、待完善模块
 
-（心跳执行中动态更新）
+- [x] client-ui: 加载状态和空状态展示（2026-05-14，14个文件全面升级）
+- [x] admin-ui: 加载状态/空状态/错误处理全面升级（2026-05-14，6个文件）
+- [ ] 后端性能优化（N+1查询、索引）
