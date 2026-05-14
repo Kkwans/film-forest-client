@@ -19,12 +19,29 @@ interface ContentItem {
   duration?: number;
 }
 
-function HorizontalSection({ title, href, items, type }: { title: string; href: string; items: ContentItem[]; type: string }) {
+function HorizontalSection({ title, href, items, type, hasError }: { title: string; href: string; items: ContentItem[]; type: string; hasError?: boolean }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const scroll = (dir: 'left' | 'right') => {
     if (scrollRef.current) scrollRef.current.scrollBy({ left: dir === 'left' ? -400 : 400, behavior: 'smooth' });
   };
-  if (items.length === 0) return null;
+  if (items.length === 0 && !hasError) return null;
+  if (items.length === 0 && hasError) {
+    return (
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-foreground">{title}</h2>
+          <Link href={href} className="text-sm font-medium flex items-center gap-1 hover:gap-2 transition-all text-accent">更多<svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg></Link>
+        </div>
+        <div className="flex items-center justify-center py-12 rounded-xl border border-border bg-card">
+          <div className="text-center">
+            <p className="text-4xl mb-2">😵</p>
+            <p className="text-sm text-muted-foreground">数据加载失败</p>
+            <Link href={href} className="text-xs text-accent mt-2 inline-block">去{title.replace(/热门|热播|最新|推荐/, '')}看看 →</Link>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   const displayItems = items.slice(0, 12);
   const movieIds = useMemo(() => displayItems.map(i => i.id), [displayItems]);
@@ -63,8 +80,9 @@ function HorizontalSection({ title, href, items, type }: { title: string; href: 
   );
 }
 
-export default function HomeClient({ initialMovies, initialDramas, initialVarieties, initialAnimes, initialShorts }: {
+export default function HomeClient({ initialMovies, initialDramas, initialVarieties, initialAnimes, initialShorts, errors }: {
   initialMovies: ContentItem[]; initialDramas: ContentItem[]; initialVarieties: ContentItem[]; initialAnimes: ContentItem[]; initialShorts: ContentItem[];
+  errors?: { movies?: boolean; dramas?: boolean; varieties?: boolean; animes?: boolean; shorts?: boolean };
 }) {
   return (
     <div className="flex flex-col gap-10">
@@ -85,11 +103,11 @@ export default function HomeClient({ initialMovies, initialDramas, initialVariet
         </div>
       </section>
 
-      <HorizontalSection title="热门电影" href="/movie" items={initialMovies} type="movie" />
-      <HorizontalSection title="热播剧集" href="/drama" items={initialDramas} type="drama" />
-      <HorizontalSection title="热门综艺" href="/variety" items={initialVarieties} type="variety" />
-      <HorizontalSection title="最新动漫" href="/anime" items={initialAnimes} type="anime" />
-      <HorizontalSection title="短剧推荐" href="/short" items={initialShorts} type="short" />
+      <HorizontalSection title="热门电影" href="/movie" items={initialMovies} type="movie" hasError={errors?.movies} />
+      <HorizontalSection title="热播剧集" href="/drama" items={initialDramas} type="drama" hasError={errors?.dramas} />
+      <HorizontalSection title="热门综艺" href="/variety" items={initialVarieties} type="variety" hasError={errors?.varieties} />
+      <HorizontalSection title="最新动漫" href="/anime" items={initialAnimes} type="anime" hasError={errors?.animes} />
+      <HorizontalSection title="短剧推荐" href="/short" items={initialShorts} type="short" hasError={errors?.shorts} />
     </div>
   );
 }

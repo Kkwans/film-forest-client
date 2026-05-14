@@ -30,14 +30,20 @@ function mapItem(m: any, type: string): ContentItem {
   };
 }
 
-async function fetchItems(url: string): Promise<ContentItem[]> {
+interface FetchResult {
+  items: ContentItem[];
+  error: boolean;
+}
+
+async function fetchItems(url: string): Promise<FetchResult> {
   try {
     const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) return { items: [], error: true };
     const data = await res.json();
     const raw = data?.data?.records || data?.data || [];
-    return raw.map((m: any) => mapItem(m, ''));
+    return { items: raw.map((m: any) => mapItem(m, '')), error: false };
   } catch {
-    return [];
+    return { items: [], error: true };
   }
 }
 
@@ -52,11 +58,18 @@ export default async function HomePage() {
 
   return (
     <HomeClient
-      initialMovies={movies}
-      initialDramas={dramas}
-      initialVarieties={varieties}
-      initialAnimes={animes}
-      initialShorts={shorts}
+      initialMovies={movies.items}
+      initialDramas={dramas.items}
+      initialVarieties={varieties.items}
+      initialAnimes={animes.items}
+      initialShorts={shorts.items}
+      errors={{
+        movies: movies.error,
+        dramas: dramas.error,
+        varieties: varieties.error,
+        animes: animes.error,
+        shorts: shorts.error,
+      }}
     />
   );
 }
