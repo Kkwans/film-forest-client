@@ -1,6 +1,6 @@
 // @ts-nocheck
-import type { Metadata } from 'next';
 import VarietyDetailClient from './VarietyDetailClient';
+import { getDetailMetadata } from '@/lib/metadata';
 
 async function fetchVariety(id: number) {
   try {
@@ -12,20 +12,10 @@ async function fetchVariety(id: number) {
   } catch { return null; }
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const item = await fetchVariety(Number(id));
-  if (!item) return { title: '综艺未找到 - 影视森林' };
-  const desc = item.storyline ? item.storyline.slice(0, 160) : `${item.title}(${item.year}) 评分、磁力链接、网盘资源下载。`;
-  return {
-    title: `${item.title} - 综艺 - 影视森林`,
-    description: desc,
-    openGraph: {
-      title: `${item.title} (${item.year})`,
-      description: desc,
-      type: 'video.tv_show',
-    },
-  };
+  return getDetailMetadata('variety', item);
 }
 
 export default function VarietyDetailPage() {

@@ -1,6 +1,6 @@
 // @ts-nocheck
-import type { Metadata } from 'next';
 import DramaDetailClient from './DramaDetailClient';
+import { getDetailMetadata } from '@/lib/metadata';
 
 async function fetchDrama(id: number) {
   try {
@@ -12,20 +12,10 @@ async function fetchDrama(id: number) {
   } catch { return null; }
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const drama = await fetchDrama(Number(id));
-  if (!drama) return { title: '剧集未找到 - 影视森林' };
-  const desc = drama.storyline ? drama.storyline.slice(0, 160) : `${drama.title}(${drama.year}) 评分、磁力链接、网盘资源下载。`;
-  return {
-    title: `${drama.title} - 电视剧 - 影视森林`,
-    description: desc,
-    openGraph: {
-      title: `${drama.title} (${drama.year})`,
-      description: desc,
-      type: 'video.tv_show',
-    },
-  };
+  const item = await fetchDrama(Number(id));
+  return getDetailMetadata('drama', item);
 }
 
 export default function DramaDetailPage() {

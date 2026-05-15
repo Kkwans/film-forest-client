@@ -1,17 +1,9 @@
 // @ts-nocheck
-import type { Metadata } from 'next';
 import HomeClient from './HomeClient';
 import { parseRegion, parseGenre } from '@/lib/utils';
+import { getListMetadata } from '@/lib/metadata';
 
-export const metadata: Metadata = {
-  title: '影视森林 - 影视资源聚合平台',
-  description: '影视森林汇集最新电影、电视剧、综艺、动漫、短剧资源，提供豆瓣/IMDB评分、磁力链接、网盘资源一站式聚合服务。',
-  openGraph: {
-    title: '影视森林 - 影视资源聚合平台',
-    description: '汇集最新电影、电视剧、综艺、动漫、短剧资源，提供豆瓣/IMDB评分、磁力链接、网盘资源一站式聚合服务。',
-    type: 'website',
-  },
-};
+export const metadata = getListMetadata('home');
 
 interface ContentItem {
   id: number;

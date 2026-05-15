@@ -1,6 +1,6 @@
 // @ts-nocheck
-import type { Metadata } from 'next';
 import AnimeDetailClient from './AnimeDetailClient';
+import { getDetailMetadata } from '@/lib/metadata';
 
 async function fetchAnime(id: number) {
   try {
@@ -12,20 +12,10 @@ async function fetchAnime(id: number) {
   } catch { return null; }
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const item = await fetchAnime(Number(id));
-  if (!item) return { title: '动漫未找到 - 影视森林' };
-  const desc = item.storyline ? item.storyline.slice(0, 160) : `${item.title}(${item.year}) 评分、磁力链接、网盘资源下载。`;
-  return {
-    title: `${item.title} - 动漫 - 影视森林`,
-    description: desc,
-    openGraph: {
-      title: `${item.title} (${item.year})`,
-      description: desc,
-      type: 'video.tv_show',
-    },
-  };
+  return getDetailMetadata('anime', item);
 }
 
 export default function AnimeDetailPage() {
