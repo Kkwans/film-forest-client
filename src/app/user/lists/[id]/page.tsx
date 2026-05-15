@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
@@ -160,14 +159,15 @@ export default function ListDetailPage() {
     setLoading(true);
     try {
       const allRes = await listApi.getAll();
-      const allLists: UserList[] = allRes.data.data || allRes.data;
+      const allLists: UserList[] = (allRes.data as { data?: UserList[] }).data || (allRes.data as unknown as UserList[]);
       const found = allLists.find((l) => l.id === listId);
       if (found) setList(found);
       const itemsRes = await listApi.getItems(listId, { page, size: 50, sort: sortBy, sortDir });
-      const data = itemsRes.data.data || itemsRes.data;
-      setItems(data.records || data || []);
+      const resData = itemsRes.data as { data?: { records?: UserListItem[]; total?: number; size?: number } };
+      const pageData = resData.data || (itemsRes.data as unknown as { records?: UserListItem[]; total?: number; size?: number });
+      setItems(pageData.records || []);
       setCurrentPage(page);
-      setTotalPages(data.size ? Math.ceil(data.total / data.size) : 1);
+      setTotalPages(pageData.size ? Math.ceil((pageData.total || 0) / pageData.size) : 1);
     } catch { setItems([]); } finally { setLoading(false); }
   };
 
@@ -221,6 +221,7 @@ export default function ListDetailPage() {
     });
   }, []);
 
+  const filteredItems = typeFilter ? items.filter(i => i.contentType === typeFilter) : items;
   const toggleSelectAll = useCallback(() => {
     setSelectedIds(prev => {
       if (prev.size === filteredItems.length) return new Set();
@@ -247,7 +248,6 @@ export default function ListDetailPage() {
     }
   };
 
-  const filteredItems = typeFilter ? items.filter(i => i.contentType === typeFilter) : items;
 
   if (!hasStoredToken()) return null;
 

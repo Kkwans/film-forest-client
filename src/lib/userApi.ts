@@ -70,6 +70,13 @@ export interface UserListItem {
   userRating?: number;   // 用户评分
   note?: string;         // 用户备注
   addedAt?: string;
+  // 影视基本信息（来自 UserListItemVO）
+  region?: string;       // 地区（JSON数组）
+  genre?: string;        // 类型（JSON数组）
+  director?: string;     // 导演（JSON数组）
+  actor?: string;        // 主演（JSON数组）
+  duration?: number;     // 时长（分钟）
+  totalEpisode?: number; // 总集数
 }
 
 // ---- Auth API ----
