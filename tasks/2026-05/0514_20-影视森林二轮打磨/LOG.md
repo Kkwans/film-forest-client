@@ -2284,3 +2284,41 @@ You're importing a module that depends on `useEffect` into a React Server Compon
 
 ### 本轮 commit
 - `eb37583` fix(client-server): 修复 client-server keep-alive-between-time-millis 配置错误（60000→90000，与 admin-server 一致）
+
+## 2026-05-16 10:38 - 第二轮打磨第38轮（最终确认）
+
+### 执行内容
+
+**1. 四仓库最终状态确认**
+- admin-server / client-server / admin-ui / client-ui：全部无 pending changes
+- 所有 commit 已推送到 GitHub ✅
+
+**2. 发现并修复 client-server keep-alive-between-time-millis 配置不一致**
+- client-server 遗漏了一处修改（60000 而非 90000）
+- commit `cccf943` 修复后已推送
+
+### 最终状态确认
+
+| 维度 | 状态 |
+|------|------|
+| 排查清单（35项） | 全部完成 ✅ |
+| 爬虫测试用例（84个方法） | 全部覆盖 ✅ |
+| 两个后端 Druid 配置 | 完全一致（90000）✅ |
+| 前端 @ts-nocheck | 仅剩 11 个 shadcn UI 组件（低优先级）✅ |
+| 两个后端 Controller 层日志 | 全部补全 ✅ |
+| 片单并发安全 | 已修复 + 推送 ✅ |
+| GitHub 推送 | 全部完成 ✅ |
+
+### 第二轮打磨完成总结
+经过 38 轮持续排查和修复，影视森林二轮打磨全部完成：
+- 35 项排查清单全部完成
+- 84 个爬虫测试方法全部覆盖
+- 6 个 Bug 修复（genreFilter/Druid/extractEpisodeCount/InterruptedException/BigDecimal/资源提取选择器）
+- 64 个前端 @ts-nocheck 文件全部清理
+- 两个后端 Druid 连接池配置一致性优化
+- 片单并发安全修复（UNIQUE 约束 + TOCTOU 消除）
+- 所有 commit 已推送到 GitHub
+
+### 本轮 commit
+- `cccf943` fix(client-server): 同步 keep-alive-between-time-millis=90000 与 admin-server 一致
+- `3f9ce4f` docs: 更新影视森林二轮打磨 LOG - 第38轮执行记录
