@@ -204,4 +204,23 @@ export const relatedApi = {
     client.get<Result<RelatedItem[]>>(`/api/${type}/${id}/related`, { params: { limit } }),
 };
 
+// ---- Tags ----
+
+export interface TagItem {
+  id: number;
+  name: string;
+  color?: string;
+  usageCount?: number;
+}
+
+export const tagApi = {
+  /** 获取所有标签 */
+  getAll: () => client.get<Result<TagItem[]>>('/api/tags'),
+  /** 获取热门标签 */
+  getHot: (limit?: number) => client.get<Result<TagItem[]>>('/api/tags/hot', { params: { limit } }),
+  /** 获取内容的标签 */
+  getContentTags: (contentType: string, contentId: number) =>
+    client.get<Result<TagItem[]>>(`/api/tags/content/${contentType}/${contentId}`),
+};
+
 export default client;

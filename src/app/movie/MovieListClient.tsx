@@ -6,7 +6,9 @@ import Pagination from '@/components/Pagination';
 import CustomSelect from '@/components/CustomSelect';
 import SortDirButton from '@/components/SortDirButton';
 import FilterChip from '@/components/FilterChip';
+import TagFilter from '@/components/TagFilter';
 import { parseRegion, parseGenre } from '@/lib/utils';
+import { tagApi, type TagItem } from '@/lib/api';
 import { useMovieStatuses } from '@/hooks/useMovieStatuses';
 
 const GENRES_MOVIE = ['全部', '剧情', '喜剧', '动作', '爱情', '科幻', '悬疑', '恐怖', '犯罪', '动画', '奇幻', '冒险'];
@@ -58,6 +60,8 @@ export default function MovieListClient({ initialItems, initialTotal, contentTyp
   const [page, setPage] = useState(1);
   const [initialized, setInitialized] = useState(false);
   const [error, setError] = useState(false);
+  const [selectedTagId, setSelectedTagId] = useState<number | null>(null);
+  const [tagContentIds, setTagContentIds] = useState<number[] | null>(null);
 
   const fetchData = useCallback(async (p: number, g: string, r: string, y: string, s: string, yf?: string, yt?: string) => {
     setLoading(true);
@@ -118,10 +122,35 @@ export default function MovieListClient({ initialItems, initialTotal, contentTyp
     else if (key === 'sort') setSort(value);
   };
 
+  // Tag filtering: when a tag is selected, fetch content IDs and filter
+  useEffect(() => {
+    if (selectedTagId === null) {
+      setTagContentIds(null);
+      return;
+    }
+    tagApi.getContentTags(contentType, 0).catch(() => null);
+    // Fetch content IDs for this tag
+    fetch(`/api/tags/${selectedTagId}/content?contentType=${contentType}&size=500`)
+      .then(r => r.json())
+      .then(data => {
+        const ids = (data?.data || []).map((item: any) => item.contentId);
+        setTagContentIds(ids);
+      })
+      .catch(() => setTagContentIds([]));
+  }, [selectedTagId, contentType]);
+
+  // Filter items by tag
+  const displayItems = useMemo(() => {
+    if (tagContentIds === null) return items;
+    const idSet = new Set(tagContentIds);
+    return items.filter(item => idSet.has(item.id));
+  }, [items, tagContentIds]);
+
   const activeFilterCount = [
     genre !== '全部',
     region !== '全部',
     year !== '全部',
+    selectedTagId !== null,
   ].filter(Boolean).length;
 
   const resetAllFilters = () => {
@@ -133,11 +162,12 @@ export default function MovieListClient({ initialItems, initialTotal, contentTyp
     setSort('latest');
     setSortDir('desc');
     setPage(1);
+    setSelectedTagId(null);
     if (!initialized) setInitialized(true);
   };
 
   // Fetch movie statuses for collect button echo
-  const movieIds = useMemo(() => items.map(i => i.id), [items]);
+  const movieIds = useMemo(() => displayItems.map(i => i.id), [displayItems]);
   const statusMap = useMovieStatuses(movieIds, contentType);
 
   return (
@@ -179,6 +209,7 @@ export default function MovieListClient({ initialItems, initialTotal, contentTyp
           <input type="number" placeholder="结束年" value={yearTo} onChange={e => { setYearTo(e.target.value); setYear('自定义'); }} className="w-20 h-8 px-2 rounded-lg text-sm border outline-none bg-card border-border text-foreground"  />
         </div>
       </div>
+      <TagFilter selectedTagId={selectedTagId} onSelect={(id) => { setSelectedTagId(id); if (!initialized) setInitialized(true); }} />
       <div className="flex items-center justify-between">
         <span className="text-sm text-muted-foreground">{loading ? '加载中...' : error ? '加载失败' : `共 ${total} 部`}</span>
         <div className="flex items-center gap-2">
@@ -202,12 +233,12 @@ export default function MovieListClient({ initialItems, initialTotal, contentTyp
         <>
           {/* Grid - mobile 2 columns, desktop responsive */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4" style={{ minHeight: '60vh' }}>
-            {items.map((item) => (
+            {displayItems.map((item) => (
               <MovieCard key={item.id} id={item.id} title={item.title} cover={item.cover} year={item.year} region={item.region} rating={item.rating} genre={item.genre} type={contentType} duration={item.duration} episodes={item.episodes} href={`/${contentType}/${item.id}`} movieStatus={statusMap[item.id] || null} />
             ))}
           </div>
 
-          {items.length === 0 && !error && (
+          {displayItems.length === 0 && !error && (
             <div className="text-center py-16">
               <p className="text-4xl mb-3">🎬</p>
               <p className="text-sm mb-1 text-secondary-foreground">暂无匹配的内容</p>
@@ -215,7 +246,7 @@ export default function MovieListClient({ initialItems, initialTotal, contentTyp
             </div>
           )}
 
-          {items.length === 0 && error && (
+          {displayItems.length === 0 && error && (
             <div className="text-center py-16">
               <p className="text-4xl mb-3">😵</p>
               <p className="text-sm mb-1 text-secondary-foreground">数据加载失败</p>

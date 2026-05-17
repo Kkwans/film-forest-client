@@ -20,6 +20,7 @@ import {
   DetailNotFound,
 } from '@/components/detail/DetailComponents';
 import RelatedSection from '@/components/RelatedSection';
+import TagChips from '@/components/TagChips';
 
 /** 在线播放资源 */
 interface OnlineResourceItem {
@@ -187,6 +188,8 @@ export default function DetailPageLayout({
           />
 
           <RatingBadges douban={item.rating} imdb={item.ratingImdb} rt={item.ratingRT} />
+
+          <TagChips contentType={contentType} contentId={item.id} />
 
           <div className="mt-2 space-y-2">
             {item.status && (
