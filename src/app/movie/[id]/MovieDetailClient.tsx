@@ -9,6 +9,7 @@ import {
   InfoRow, SynopsisSection, ResourceTabs, CopyableResourceList,
   DetailPageSkeleton, DetailNotFound,
 } from '@/components/detail/DetailComponents';
+import RelatedSection from '@/components/RelatedSection';
 
 interface MovieDetail {
   id: number; title: string; cover: string; year: number; region: string;
@@ -137,6 +138,8 @@ export default function MovieDetailClient({ movie, magnetResources, cloudResourc
           />
         )}
       </ResourceTabs>
+
+      <RelatedSection contentType="movie" contentId={movie.id} />
     </div>
   );
 }

@@ -189,4 +189,19 @@ export const recommendApi = {
     client.get<Result<RecommendData>>('/api/recommend', { params: { topN } }),
 };
 
+export interface RelatedItem {
+  id: number;
+  type: string;
+  title: string;
+  posterUrl?: string;
+  year?: number;
+  scoreDouban?: number;
+}
+
+export const relatedApi = {
+  /** 获取相关推荐（同类型 + 同标签） */
+  get: (type: string, id: number, limit?: number) =>
+    client.get<Result<RelatedItem[]>>(`/api/${type}/${id}/related`, { params: { limit } }),
+};
+
 export default client;

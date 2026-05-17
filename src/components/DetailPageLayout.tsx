@@ -19,6 +19,7 @@ import {
   DetailPageSkeleton,
   DetailNotFound,
 } from '@/components/detail/DetailComponents';
+import RelatedSection from '@/components/RelatedSection';
 
 /** 在线播放资源 */
 interface OnlineResourceItem {
@@ -303,8 +304,8 @@ export default function DetailPageLayout({
               </ResourceTabs>
             </>
           )}
-        </>
-      )}
+
+      <RelatedSection contentType={contentType} contentId={item.id} />
     </div>
   );
 }
