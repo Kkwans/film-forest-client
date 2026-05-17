@@ -134,7 +134,8 @@ export default function DetailPageLayout({
       resourceApi.magnet(contentType, item.id, ep).then((res) => { const d = (res.data as { data?: MagnetResourceItem[] } | undefined)?.data; setMagnetResources(Array.isArray(d) ? d : []); return d; }),
       resourceApi.cloud(contentType, item.id, ep).then((res) => { const d = (res.data as { data?: CloudResourceItem[] } | undefined)?.data; setCloudResources(Array.isArray(d) ? d : []); return d; }),
     ])
-      .catch(() => {
+      .catch(e => {
+        console.error('加载在线资源失败', e);
         setOnlineResources([]);
         setMagnetResources([]);
         setCloudResources([]);
