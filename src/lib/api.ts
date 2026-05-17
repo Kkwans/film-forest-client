@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
-interface Result<T = unknown> {
+export interface Result<T = unknown> {
   code: number;
   message?: string;
   data: T;
@@ -37,12 +37,65 @@ export interface SearchParams {
   sortDir?: string;
 }
 
+/** Detail response for movie/drama/anime/variety/short-drama */
+export interface ContentDetail {
+  id: number;
+  title: string;
+  posterUrl?: string;
+  year?: number;
+  region?: string;
+  scoreDouban?: number;
+  scoreImdb?: number;
+  scoreRT?: number;
+  storyline?: string;
+  status?: number;
+  totalEpisode?: number;
+  currentEpisode?: number;
+  duration?: number;
+  genre?: string;
+  director?: string;
+  writer?: string;
+  actor?: string;
+  language?: string;
+  releaseDate?: string;
+  aka?: string;
+  updatedAt?: string;
+}
+
+/** Search result item from unified search API */
+export interface SearchRecord {
+  id: number;
+  type: 'movie' | 'drama' | 'variety' | 'anime' | 'short_drama';
+  title: string;
+  cover: string;
+  year: number | null;
+  rating: number | null;
+  ratingImdb: number | null;
+  ratingRT: number | null;
+  summary: string | null;
+  director?: string;
+  actor?: string;
+  genre?: string;
+  region?: string;
+  duration?: number;
+  totalEpisode?: number;
+  updatedAt?: string;
+  alias?: string;
+}
+
+export interface PagedResult<T> {
+  records: T[];
+  total: number;
+  size: number;
+  current: number;
+}
+
 export const movieApi = {
   list: (params?: MovieListParams, config?: object) =>
     client.get<Result<unknown>>('/api/movies', { params, ...config }),
 
   detail: (id: number) =>
-    client.get<Result<unknown>>(`/api/movies/${id}`),
+    client.get<Result<ContentDetail>>(`/api/movies/${id}`),
 
   hot: () =>
     client.get<Result<unknown>>('/api/hot'),
@@ -56,7 +109,7 @@ export const dramaApi = {
     client.get<Result<unknown>>('/api/dramas', { params, ...config }),
 
   detail: (id: number) =>
-    client.get<Result<unknown>>(`/api/dramas/${id}`),
+    client.get<Result<ContentDetail>>(`/api/dramas/${id}`),
 };
 
 export const varietyApi = {
@@ -64,7 +117,7 @@ export const varietyApi = {
     client.get<Result<unknown>>('/api/varieties', { params, ...config }),
 
   detail: (id: number) =>
-    client.get<Result<unknown>>(`/api/varieties/${id}`),
+    client.get<Result<ContentDetail>>(`/api/varieties/${id}`),
 };
 
 export const animeApi = {
@@ -72,7 +125,7 @@ export const animeApi = {
     client.get<Result<unknown>>('/api/animes', { params, ...config }),
 
   detail: (id: number) =>
-    client.get<Result<unknown>>(`/api/animes/${id}`),
+    client.get<Result<ContentDetail>>(`/api/animes/${id}`),
 };
 
 export const shortDramaApi = {
@@ -80,12 +133,12 @@ export const shortDramaApi = {
     client.get<Result<unknown>>('/api/short-dramas', { params, ...config }),
 
   detail: (id: number) =>
-    client.get<Result<unknown>>(`/api/short-dramas/${id}`),
+    client.get<Result<ContentDetail>>(`/api/short-dramas/${id}`),
 };
 
 export const searchApi = {
   search: (keyword: string, params?: SearchParams) =>
-    client.get<Result<unknown>>('/api/search', { params: { keyword, ...params } }),
+    client.get<Result<PagedResult<SearchRecord>>>('/api/search', { params: { keyword, ...params } }),
 };
 
 export const resourceApi = {

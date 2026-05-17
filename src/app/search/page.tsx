@@ -99,7 +99,7 @@ function SearchContent() {
     setSearched(true);
     setCurrentPage(page);
     try {
-      const res = await searchApi.search(kw, { page, size: 20, sort, sortDir: dir }) as any;
+      const res = await searchApi.search(kw, { page, size: 20, sort, sortDir: dir });
       const data = res.data?.data || {};
       setResults(data.records || []);
       setTotal(data.total || 0);

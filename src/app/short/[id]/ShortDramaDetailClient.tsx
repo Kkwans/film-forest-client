@@ -17,11 +17,11 @@ export default function ShortDramaDetailClient() {
   const fetchDetail = async () => {
     setLoading(true);
     try {
-      const res = await shortDramaApi.detail(id) as any;
-      const d = res.data?.data || res.data;
+      const res = await shortDramaApi.detail(id);
+      const d = res.data?.data;
       if (d && d.id) {
         setItem({
-          id: d.id, title: d.title, cover: d.posterUrl, year: d.year,
+          id: d.id, title: d.title || '', cover: d.posterUrl || '', year: d.year || 0,
           region: parseRegion(d.region).join(' / '),
           summary: cleanStoryline(d.storyline),
           status: d.status === 1 ? '更新中' : '已完结',
