@@ -1,8 +1,26 @@
 import type { NextConfig } from "next";
+import bundleAnalyzer from "@next/bundle-analyzer";
+
+const withBundleAnalyzer = bundleAnalyzer({
+  enabled: process.env.ANALYZE === "true",
+});
 
 const nextConfig: NextConfig = {
   output: "standalone",
   reactStrictMode: true,
+
+  // 优化第三方包导入，减少 bundle 体积
+  experimental: {
+    optimizePackageImports: [
+      "lucide-react",
+      "@base-ui/react",
+      "zustand",
+      "class-variance-authority",
+      "clsx",
+      "tailwind-merge",
+    ],
+  },
+
   async rewrites() {
     return [
       {
@@ -26,4 +44,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withBundleAnalyzer(nextConfig);
