@@ -10,6 +10,7 @@ import {
   DetailPageSkeleton, DetailNotFound,
 } from '@/components/detail/DetailComponents';
 import RelatedSection from '@/components/RelatedSection';
+import RatingDistribution from '@/components/detail/RatingDistribution';
 
 interface MovieDetail {
   id: number; title: string; cover: string; year: number; region: string;
@@ -84,6 +85,7 @@ export default function MovieDetailClient({ movie, magnetResources, cloudResourc
             onWatchedEdit={ds.handleWatchedEdit} onCollectOpen={() => ds.setCollectOpen(true)} />
 
           <RatingBadges douban={movie.rating} imdb={movie.ratingImdb} rt={movie.ratingRT} />
+          <RatingDistribution douban={movie.rating} imdb={movie.ratingImdb} rt={movie.ratingRT} />
 
           <div className="mt-2 space-y-2">
             {movie.aka.length > 0 && <InfoRow label="又名">{movie.aka.join(' / ')}</InfoRow>}
