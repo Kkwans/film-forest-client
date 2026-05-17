@@ -647,3 +647,131 @@
 - 管理端全流程测试
 - 部署到 NAS
 - 验证修复效果
+
+---
+
+## 2026-05-17 17:23 - 第 15 轮
+
+### 本次目标
+- 用户端全流程测试 - client-ui 代码质量审查
+
+### 排查过程
+1. 全局扫描 client-ui 的 `as any` 使用（5 处，全部在 API 调用层）
+2. 全局扫描 `.catch(() => {})` 静默错误吞噬（1 处 WatchedModal）
+3. 检查 console.log/debug/info 残留（0 处 ✅）
+4. **发现根因**: `api.ts` 所有 10 个 API 方法返回 `Result<unknown>`，迫使调用方使用 `as any`
+5. TypeScript 编译检查确认无其他类型错误
+
+### 问题分析
+
+**`as any` 类型断言（5 处）**：
+| 文件 | 问题 | 根因 |
+|------|------|------|
+| drama/[id]/DramaDetailClient.tsx:20 | `dramaApi.detail(id) as any` | API 返回 `Result<unknown>` |
+| anime/[id]/AnimeDetailClient.tsx:20 | `animeApi.detail(id) as any` | 同上 |
+| variety/[id]/VarietyDetailClient.tsx:20 | `varietyApi.detail(id) as any` | 同上 |
+| short/[id]/ShortDramaDetailClient.tsx:20 | `shortDramaApi.detail(id) as any` | 同上 |
+| search/page.tsx:102 | `searchApi.search(...) as any` | 同上 |
+
+**静默 `.catch(() => {})`（1 处）**：
+| 文件 | 场景 | 影响 |
+|------|------|------|
+| WatchedModal.tsx:50 | 加载已看列表 | 失败时无日志，排查困难 |
+
+### 修复内容
+
+**api.ts - 类型化 API 响应**
+- 新增 `ContentDetail` 接口（详情页响应类型，17 个字段）
+- 新增 `SearchRecord` 接口（搜索结果项类型，16 个字段）
+- 新增 `PagedResult<T>` 泛型接口（分页结果包装）
+- 5 个 detail 方法：`Result<unknown>` → `Result<ContentDetail>`
+- search 方法：`Result<unknown>` → `Result<PagedResult<SearchRecord>>`
+
+**4 个详情页 - 移除 as any**
+- `const res = await xxxApi.detail(id) as any` → `const res = await xxxApi.detail(id)`
+- `const d = res.data?.data || res.data` → `const d = res.data?.data`
+- 补充 optional 字段 fallback：`posterUrl || ''`, `year || 0`
+
+**search/page.tsx - 移除 as any**
+- `searchApi.search(...) as any` → `searchApi.search(...)`
+
+**WatchedModal.tsx - 静默 catch 增加日志**
+- `.catch(() => {})` → `.catch(e => console.error('加载已看列表失败', e))`
+
+### Git
+- Commit: `06f312f` fix(client-ui): 消除全部 as any 类型断言，API 响应类型化
+- Push: main -> origin/main ✅（force-with-lease 修复远程被意外覆盖的问题）
+
+### 影响范围
+- client-ui 全部 `as any` 类型断言已消除（5/5）
+- API 响应类型化，编译器可检查字段访问正确性
+- 详情页 optional 字段有安全 fallback，不会因 undefined 崩溃
+- WatchedModal 加载失败时有错误日志
+- TypeScript 编译通过，0 error
+
+### 剩余任务
+- 用户端全流程测试（功能层面，需实际运行验证）
+- 管理端全流程测试
+- 部署到 NAS
+- 验证修复效果
+
+---
+
+## 2026-05-17 17:53 - 第 16 轮
+
+### 本次目标
+- 管理端全流程测试 - admin-ui 代码质量审查
+
+### 排查过程
+1. 全局扫描 `admin-ui/src/` 的 `as any` 使用：仅剩 `ThemeToggle.tsx:21-22`（2 处，已评估为可接受）
+2. 全局扫描 `.catch(()` 静默错误吞噬：2 处
+   - `auth-provider.tsx:58`：认证失败时清除 token 并跳转登录页 → ✅ 合理的错误处理，非静默吞噬
+   - `crawler/page.tsx:392`：genre 列表加载失败时静默设为空数组 → ❌ 缺少日志
+3. 检查 console.log/debug/info 残留：0 处 ✅
+4. 检查 TODO/FIXME/HACK/XXX 标记：0 处 ✅
+5. 检查 eslint-disable/@ts-ignore：1 处（resources/page.tsx useEffect 空依赖，合理）
+6. TypeScript 编译检查：0 error ✅
+
+### 问题分析
+
+**`as any` 类型断言（2 处，可接受）**：
+| 文件 | 行 | 问题 | 评估 |
+|------|-----|------|------|
+| ThemeToggle.tsx:21-22 | `(window as any).__applyTheme` | 访问自定义 window 全局方法 | ✅ 可接受 |
+
+**静默 `.catch(() => {})`（1 处需修复）**：
+| 文件 | 行 | 场景 | 影响 |
+|------|-----|------|------|
+| crawler/page.tsx:392 | 加载 genre 类型列表 | 失败时无日志，排查困难 |
+
+### 修复内容
+
+**crawler/page.tsx - genre 加载增加错误日志**
+- `.catch(() => setGenres([]))` → `.catch(e => { console.error('加载类型列表失败', e); setGenres([]); })`
+- 保持 fallback 行为不变（失败时 genre 为空），增加错误日志便于排查
+
+### Git
+- Commit: `9655496` fix(crawler): genre列表加载失败增加错误日志(admin-ui代码审查)
+- Push: main -> origin/main ✅
+
+### 影响范围
+- admin-ui 全部代码质量审查完成
+- 剩余 `as any`（ThemeToggle）为合理使用，无需修复
+- auth-provider 的 catch 是认证失败的正确处理逻辑
+- TypeScript 编译通过，0 error
+
+### 审查总结
+| 检查项 | 结果 |
+|--------|------|
+| `as any` | 2 处（ThemeToggle，可接受） |
+| 静默 catch | 0 处（全部已修复） |
+| console.log 残留 | 0 处 |
+| TODO/FIXME | 0 处 |
+| eslint-disable | 1 处（合理） |
+| TypeScript 编译 | 0 error |
+
+### 剩余任务
+- 用户端全流程测试（功能层面，需实际运行验证）
+- 管理端全流程测试（功能层面，需实际运行验证）
+- 部署到 NAS
+- 验证修复效果
