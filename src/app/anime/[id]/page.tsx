@@ -1,9 +1,12 @@
 import AnimeDetailClient from './AnimeDetailClient';
 import { getDetailMetadata } from '@/lib/metadata';
 
+// ISR: 动漫详情页每小时重新验证
+export const revalidate = 3600;
+
 async function fetchAnime(id: number) {
   try {
-    const res = await fetch(`http://localhost:8080/api/animes/${id}`, { cache: 'no-store' });
+    const res = await fetch(`http://localhost:8080/api/animes/${id}`, { next: { revalidate: 3600 } });
     const data = await res.json();
     const d = data?.data;
     if (!d || !d.id) return null;

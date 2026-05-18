@@ -4,6 +4,9 @@ import { getListMetadata } from '@/lib/metadata';
 
 export const metadata = getListMetadata('home');
 
+// ISR: 首页每 10 分钟重新验证
+export const revalidate = 600;
+
 interface ContentItem {
   id: number;
   title: string;
@@ -39,7 +42,7 @@ interface FetchResult {
 
 async function fetchItems(url: string): Promise<FetchResult> {
   try {
-    const res = await fetch(url, { cache: 'no-store' });
+    const res = await fetch(url, { next: { revalidate: 600 } });
     if (!res.ok) return { items: [], error: true };
     const data = await res.json();
     const raw = data?.data?.records || data?.data || [];
@@ -82,7 +85,7 @@ function mapRecommendItem(m: RecommendItem): ContentItem {
 
 async function fetchRecommend(): Promise<{ hot: Record<string, ContentItem[]>; latest: Record<string, ContentItem[]>; error: boolean }> {
   try {
-    const res = await fetch('http://localhost:8080/api/recommend?topN=6', { cache: 'no-store' });
+    const res = await fetch('http://localhost:8080/api/recommend?topN=6', { next: { revalidate: 600 } });
     if (!res.ok) return { hot: {}, latest: {}, error: true };
     const json = await res.json();
     const data: RecommendData = json?.data;

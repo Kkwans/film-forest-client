@@ -1,9 +1,12 @@
 import ShortDramaDetailClient from './ShortDramaDetailClient';
 import { getDetailMetadata } from '@/lib/metadata';
 
+// ISR: 短剧详情页每小时重新验证
+export const revalidate = 3600;
+
 async function fetchShortDrama(id: number) {
   try {
-    const res = await fetch(`http://localhost:8080/api/short-dramas/${id}`, { cache: 'no-store' });
+    const res = await fetch(`http://localhost:8080/api/short-dramas/${id}`, { next: { revalidate: 3600 } });
     const data = await res.json();
     const d = data?.data;
     if (!d || !d.id) return null;

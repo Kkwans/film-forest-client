@@ -33,7 +33,7 @@ export async function fetchContentList(
   try {
     const res = await fetch(
       `http://localhost:8080${apiPath}?page=1&size=${size}`,
-      { cache: 'no-store' }
+      { next: { revalidate: 300 } }
     );
     const data = await res.json();
     const raw = data?.data?.records || [];

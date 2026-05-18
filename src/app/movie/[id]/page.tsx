@@ -3,9 +3,12 @@ import MovieDetailClient from './MovieDetailClient';
 import { parseRegion, parseGenre } from '@/lib/utils';
 import { getDetailMetadata } from '@/lib/metadata';
 
+// ISR: 电影详情页每小时重新验证
+export const revalidate = 3600;
+
 async function fetchMovie(id: number) {
   try {
-    const res = await fetch(`http://localhost:8080/api/movies/${id}`, { cache: 'no-store' });
+    const res = await fetch(`http://localhost:8080/api/movies/${id}`, { next: { revalidate: 3600 } });
     const data = await res.json();
     const m = data?.data;
     if (!m || !m.id) return null;
@@ -35,8 +38,8 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 async function fetchResources(type: string, contentId: number) {
   try {
     const [magnetRes, cloudRes] = await Promise.all([
-      fetch(`http://localhost:8080/api/resources/magnet?contentType=${type}&contentId=${contentId}`, { cache: 'no-store' }),
-      fetch(`http://localhost:8080/api/resources/cloud?contentType=${type}&contentId=${contentId}`, { cache: 'no-store' }),
+      fetch(`http://localhost:8080/api/resources/magnet?contentType=${type}&contentId=${contentId}`, { next: { revalidate: 3600 } }),
+      fetch(`http://localhost:8080/api/resources/cloud?contentType=${type}&contentId=${contentId}`, { next: { revalidate: 3600 } }),
     ]);
     const magnetData = await magnetRes.json();
     const cloudData = await cloudRes.json();
