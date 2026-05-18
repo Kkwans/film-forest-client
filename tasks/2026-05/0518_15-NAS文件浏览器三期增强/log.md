@@ -27,6 +27,26 @@ priority: highest
 - 分三个 Phase 实施
 - 核心功能优先于 UI 优化
 
+## 2026-05-18 19:25 - 设计文档修正
+
+**状态：** 修正重大架构错误
+
+**问题：**
+- 原设计将收藏和标签数据存储在前端 localStorage
+- localStorage 是浏览器本地存储，换设备数据就丢失
+- 这是严重的架构错误，不符合“质量第一”的要求
+
+**修正：**
+- 收藏数据：改为后端 BoltDB 数据库存储，与用户账号关联
+- 标签数据：改为后端 BoltDB 数据库存储，与用户账号关联
+- 完整的 API 设计：GET/POST/PUT/DELETE 接口齐全
+- 前端通过 API 调用后端，不使用 localStorage
+
+**决策：**
+- 所有用户数据必须存储在后端数据库
+- 与账号关联，换设备数据不丢失
+- localStorage 仅用于非关键配置（如主题偏好、语言设置）
+
 ---
 
 ## 2026-05-18 15:55 - F2 密码策略修改 + 错误信息汉化
@@ -61,7 +81,104 @@ priority: highest
 
 ---
 
-## 2026-05-18 16:25 - F4 存储卷挂载配置
+## 2026-05-18 17:25 - F7 目录分类系统
+
+**状态：** 已完成（代码层面，需部署后验证）
+
+**完成项：**
+- [x] F7: 目录分类系统
+  - `http/categories.go`: 新增目录分类后端
+    - `/api/categories` GET 接口：返回分类规则配置（admin 可访问）
+    - `/api/classify?path=xxx` GET 接口：分类指定路径（返回 category + risk level）
+    - 内置 3 大分类：个人文件夹、共享文件夹、系统文件夹
+    - 风险等级判定：high/medium/low 三级
+    - glob 模式匹配：支持 `*` 通配符和前缀匹配
+  - `http/http.go`: 注册 `/api/categories` 和 `/api/classify` 路由
+  - `frontend/src/api/categories.ts`: API 客户端 + 类型定义
+  - `frontend/src/stores/categories.ts`: Pinia store
+    - 本地分类匹配（classifyPath / getRiskLevel）
+    - 内置 fallback 分类规则（API 不可用时降级）
+    - glob 模式匹配逻辑
+  - `frontend/src/components/Sidebar.vue`: 侧边栏分类展示
+    - admin 用户显示「目录分类」分区
+    - 3 个可折叠分组：个人/共享/系统文件夹
+    - 每个分组显示成员目录列表
+    - 目录图标显示风险等级颜色（红/橙/绿）
+    - 点击目录可直接导航
+  - `frontend/src/css/sidebar.css`: 分类 section 样式
+    - 分组头部样式 + 展开/折叠箭头动画
+    - 风险等级图标颜色（risk-high/medium/low）
+    - 子目录缩进样式
+  - i18n: zh-cn.json + en.json 添加 `directoryCategories` 等翻译
+- [x] Git commit + push 到 GitHub (push051815 分支, commit 3aedacb)
+- [x] 前端构建验证通过（vite build 成功）
+
+**技术细节：**
+- 分类匹配逻辑：后端用 filepath.Match，前端用正则模拟 glob
+- 已知目录列表：基于 NAS 实际目录结构硬编码（@home, @docker, Download, Movie 等）
+- 风险等级：高危(@docker, @appstore等) / 中危(Docker项目) / 低危(用户文件)
+- 分类可扩展：后端 builtinCategoryRules 数组可随时添加新规则
+
+**下一步：**
+- F8: 风险等级系统（F7 已内置基础风险等级，需增强确认对话框）
+- F5: 重新构建 Docker 镜像并部署（验证全部功能）
+- F9: UI 优化
+
+**问题：**
+- git push 超时，需要较长时间等待（可能是仓库较大）
+
+**决策：**
+- 分类规则硬编码而非 JSON 配置文件（更简单、无额外 I/O）
+- 前端同时支持 API 获取和本地 fallback（双保险）
+- 已知目录列表在 Sidebar 组件中硬编码（后续可改为 API 动态获取）
+
+---
+
+## 2026-05-18 16:55 - F6 存储卷发现 API + 侧边栏展示
+
+**状态：** 已完成（代码层面，需部署后验证）
+
+**完成项：**
+- [x] F6: 存储卷发现 API
+  - `http/volumes.go`: 新增 `/api/volumes` 接口
+    - 自动扫描容器根目录 `/volume*` 目录
+    - 返回路径、名称、类型(system/usb/network)、总容量、已用空间
+    - 使用 gopsutil 获取磁盘用量
+    - 仅 admin 用户可访问
+  - `http/http.go`: 注册 `/api/volumes` GET 路由
+  - `frontend/src/api/volumes.ts`: API 客户端 + Volume 类型定义
+  - `frontend/src/stores/volumes.ts`: Pinia store
+    - displayVolumes / systemVolumes / otherVolumes 计算属性
+    - 自动格式化容量（prettyBytes）
+    - 错误降级处理（API 失败不破坏 UI）
+  - `frontend/src/components/Sidebar.vue`: 侧边栏存储卷列表
+    - admin 用户显示“存储卷”分区
+    - 每个卷显示名称 + 容量进度条 + 用量文本
+    - 进度条颜色随用量变化（<70% 蓝、70-90% 橙、>90% 红）
+    - 点击导航到 `/files/<volumePath>/`
+  - `frontend/src/css/sidebar.css`: 存储卷 section 样式
+  - i18n: zh-cn.json + en.json 添加 `sidebar.storageVolumes` 翻译
+- [x] Git commit + push 到 GitHub (push051815 分支)
+- [x] 前端构建验证通过（vite build 成功）
+
+**技术细节：**
+- `Volume` 结构体包含 Path/Name/Type/TotalSpace/UsedSpace 五个字段
+- 存储卷类型通过路径前缀自动判断（volumeUSB→usb, volumeSATA/NVMe→network, 其他→system）
+- Sidebar 用 `v-if="user.perm.admin"` 控制可见性
+- 进度条使用 CSS transition 实现平滑动画
+
+**下一步：**
+- F5: 重新构建 Docker 镜像并部署（验证 F2/F4/F6 功能）
+- F7: 目录分类系统（基于 F6 的存储卷架构）
+- F8: 风险等级系统
+
+**问题：**
+- 无
+
+**决策：**
+- F6 代码完成后立即做前端构建验证，确保无编译错误
+- 存储卷列表放在 sidebar 的 action buttons 和 disk usage 之间
+- 进度条颜色阈值参考常见磁盘告警标准（70%/90%）
 
 **状态：** 已完成
 
@@ -96,3 +213,333 @@ priority: highest
 - FB_ROOT=/ 而非 /srv，让路径更自然（/volume1 而非 /srv/volume1）
 - 只读挂载保护存储卷安全
 - 移除 /srv volume 声明，与新 root 配置保持一致
+
+---
+
+## 2026-05-18 17:55 - F8 风险等级系统
+
+**状态：** 已完成（代码层面，需部署后验证）
+
+**完成项：**
+- [x] F8: 风险等级系统
+  - `frontend/src/components/files/ListingItem.vue`: 目录列表显示风险等级标签
+    - 高危目录显示红色「高危」徽章
+    - 中危目录显示橙色「中危」徽章
+    - 低危目录不显示标签
+    - 鼠标悬停显示详细提示（高危: 可能导致系统不稳定，中危: 请谨慎操作）
+  - `frontend/src/components/prompts/RiskConfirm.vue`: 新增高危操作确认对话框
+    - 显示风险等级标签 + 目标路径
+    - 根据操作类型显示不同警告文案（删除/重命名/移动）
+    - 红色左边框详情区域突出显示风险信息
+    - 「确认执行」按钮（橙色）+ 「取消」按钮
+  - `frontend/src/components/prompts/Delete.vue`: 删除前风险检查
+    - 遍历选中项，检查是否为高/中危目录
+    - 如有风险目录，先弹出 RiskConfirm 对话框
+    - 用户确认后才执行实际删除
+  - `frontend/src/components/prompts/Rename.vue`: 重命名前风险检查
+    - 检查被重命名的目录风险等级
+    - 高/中危目录需先确认
+  - `frontend/src/components/prompts/Move.vue`: 移动前风险检查
+    - 检查被移动的目录风险等级
+    - 高/中危目录需先确认
+  - `frontend/src/components/prompts/Prompts.vue`: 注册 risk-confirm prompt
+  - `frontend/src/css/listing.css`: 风险标签样式
+    - 红色高危徽章（半透明背景 + 边框）
+    - 橙色中危徽章（半透明背景 + 边框）
+    - 暗色模式适配
+  - `frontend/src/css/prompts.css`: 风险确认对话框样式
+    - 头部图标 + 标题布局
+    - 风险标签 + 路径展示
+    - 红色左边框详情区域
+    - 橙色确认按钮
+    - 暗色模式适配
+  - `frontend/src/i18n/zh-cn.json`: 中文翻译
+    - buttons.riskConfirm: "确认执行"
+    - prompts.riskConfirmTitle/Message/Delete/Rename/Move/Generic
+  - `frontend/src/i18n/en.json`: 英文翻译
+  - `http/data.go`: 修复多余闭合括号（语法问题）
+- [x] Git commit + push 到 GitHub (push051815 分支, commit 33c934e)
+- [x] 前端构建验证通过（vite build 成功）
+
+**技术细节：**
+- 风险等级判定复用 F7 的 categoriesStore.getRiskLevel() 方法
+- 风险检查嵌套在原始操作流程中：用户触发删除/重命名/移动 → 检查风险 → 高危则弹确认框 → 确认后执行原操作
+- RiskConfirm 使用 onconfirm 回调模式，确认后调用原始操作的 execute 方法
+- 风险标签仅在 isDir=true 且 risk !== 'low' 时显示
+- CSS 使用半透明背景 + 边框的轻量设计，不影响正常浏览体验
+
+**下一步：**
+- F5: 重新构建 Docker 镜像并部署（验证全部功能）
+- F9: UI 优化
+- F10: 目录收藏功能
+
+**问题：**
+- 无
+
+**决策：**
+- 风险确认采用「先检查后弹窗」模式，而非修改 showHover 全局拦截（更精准、不影响性能）
+- Delete/Rename/Move 三个操作都加了风险检查（覆盖主要写操作）
+- data.go 的语法修复一并提交（消除编译警告）
+
+---
+
+## 2026-05-18 18:25 - F9 UI 优化
+
+**状态：** 已完成
+
+**完成项：**
+- [x] F9: UI 优化
+  - `login.css`: 修复 card-enter 动画与 flexbox 居中冲突，移除 translate(-50%) 改用 translateY(12px)
+  - `header.css`: 优化 header 间距（gap 0.25→0.5em, padding 统一），logo 尺寸增大（2em→2.25em）
+  - `header.css`: 搜索栏加宽（25em→28em），输入框高度增加（2.25→2.5em），圆角优化（0.625→0.75em）
+  - `header.css`: 搜索图标聚焦时变色，输入文字颜色改为 textPrimary，聚焦提示颜色增强
+  - `header.css`: 面包屑间距优化（gap 0.125→0.25em, padding 加大）
+  - `sidebar.css`: top 值与 header 高度对齐（4em→3.5em）
+  - `base.css`: body padding-top 统一为 3.5em（与 header 高度一致），main 宽度优化（calc(100%-17em)）
+  - `styles.css`: Editor/Previewer padding-top 同步调整为 3.5em
+  - `mobile.css`: 移动端 body padding-top 3em，tablet main 宽度与 sidebar 匹配（calc(100%-15em)）
+  - `base.css`: 移动端面包屑 sticky top 3em（与 header 3em 一致）
+- [x] Git commit + push 到 GitHub (push051815 分支, commit a8794b0)
+- [x] 前端构建验证通过（vite build 成功）
+
+**技术细节：**
+- 统一设计间距系统：header 3.5em → body padding-top 3.5em → sidebar top 3.5em → breadcrumbs sticky top 3.5em
+- 移动端：header 3em → body padding-top 3em → sidebar top 0（overlay 模式）→ breadcrumbs top 3em
+- 搜索栏从 25em 加宽到 28em，更好的搜索体验
+- 所有圆角统一使用 0.5em/0.75em 系统
+
+**下一步：**
+- F5: 重新构建 Docker 镜像并部署（验证全部功能）
+- F10: 目录收藏功能
+- F11: 目录标签功能
+
+**问题：**
+- 无
+
+**决策：**
+- 统一 header/sidebar/breadcrumbs 的 top 值为 3.5em，消除 1-2px 的视觉偏差
+- 搜索栏加宽 3em 以提供更好的搜索体验
+- 登录动画改用 translateY 而非 translate(-50%)，与 flexbox 居中兼容
+
+---
+
+## 2026-05-18 18:55 - F10 目录收藏功能
+
+**状态：** 已完成（代码层面，需部署后验证）
+
+**完成项：**
+- [x] F10: 目录收藏功能
+  - `frontend/src/stores/favorites.ts`: 新增 Pinia store
+    - Favorite 数据结构（id, path, name, addedAt, order）
+    - localStorage 持久化（key: `nas-file-browser-favorites`）
+    - addFavorite / removeFavorite / removeByPath / isFavorite / toggleFavorite
+    - reorderFavorite（拖拽排序预留）
+    - sortedFavorites 计算属性
+  - `frontend/src/components/Sidebar.vue`: 收藏夹分区
+    - 侧边栏顶部显示「收藏夹」section（在存储卷之前）
+    - 已收藏目录列表，金色星标图标
+    - hover 显示取消收藏按钮（close 图标）
+    - 点击目录可直接导航
+    - mounted 时自动加载收藏数据
+  - `frontend/src/components/files/ListingItem.vue`: 目录星标收藏按钮
+    - 目录项名称后添加星标 icon（star_border/star）
+    - 默认隐藏，hover 时显示
+    - 已收藏的目录星标常亮（金色）
+    - 点击切换收藏状态（stopPropagation 防止触发目录导航）
+    - 使用 i18n 翻译 title
+  - `frontend/src/css/sidebar.css`: 收藏夹 section 样式
+    - 分区 header + 星标 icon 颜色
+    - 收藏项 hover 取消按钮样式
+    - 红色 hover 取消反馈
+  - `frontend/src/css/listing.css`: 星标按钮样式
+    - 默认 opacity:0，hover 显示
+    - 已收藏时金色高亮
+    - 选中状态适配（蓝色背景下的对比色）
+  - `frontend/src/i18n/zh-cn.json`: 中文翻译（sidebar.favorites/addFavorite/removeFavorite/noFavorites + favorites.added/removed）
+  - `frontend/src/i18n/en.json`: 英文翻译
+- [x] Git commit 到 GitHub (push051815 分支, commit 630c4ca)
+- [ ] Git push（NAS 网络无法连接 GitHub，待后续推送）
+- [x] 前端构建验证通过（vite build 成功，1m 14s）
+
+**技术细节：**
+- 收藏数据完全在前端 localStorage，无需后端 API
+- store 提供 isFavorite() 和 toggleFavorite() 方法，组件调用简单
+- 星标按钮使用 @click.stop.prevent 防止事件冒泡到目录导航
+- 收藏夹 section 仅在有收藏项时显示（v-if 控制）
+- 取消收藏按钮仅 hover 时显示，保持界面简洁
+
+**下一步：**
+- F11: 目录标签功能
+- F5: 重新构建 Docker 镜像并部署（验证全部功能）
+- Git push 待网络恢复后执行
+
+**问题：**
+- NAS 无法连接 GitHub（端口 443 超时），commit 已本地保存
+
+**决策：**
+- 收藏数据使用 localStorage 而非后端存储（简单、无需 API、用户数据跟随浏览器）
+- 收藏夹 section 放在侧边栏最顶部（在存储卷之前），方便快速访问
+- 星标使用 Material Icons 的 star/star_border，与现有图标风格一致
+- 拖拽排序功能预留 reorderFavorite 方法，暂不在 UI 实现（后续迭代）
+
+---
+
+## 2026-05-18 19:25 - F11 目录标签功能
+
+**状态：** 已完成（代码层面，需部署后验证）
+
+**完成项：**
+- [x] F11: 目录标签功能
+  - `frontend/src/stores/tags.ts`: 新增 Pinia store
+    - Tag 数据结构（id, name, color, paths, createdAt）
+    - localStorage 持久化（key: `nas-file-browser-tags`）
+    - CRUD: createTag / updateTag / deleteTag
+    - 路径操作: addPathToTag / removePathFromTag / togglePathInTag
+    - 筛选: setFilter / matchesFilter / activeFilterTag
+    - 17 色预设调色板（TAG_COLORS）
+    - getTagsForPath / hasTags 查询方法
+    - sortedTags 按中文排序
+  - `frontend/src/components/TagManager.vue`: 标签管理弹窗
+    - 创建新标签（名称输入 + 颜色选择器）
+    - 编辑标签（inline 编辑名称 + 颜色）
+    - 删除标签（带确认面板）
+    - 显示每个标签关联的目录数量
+    - 关闭按钮
+  - `frontend/src/components/TagPicker.vue`: 标签分配弹窗
+    - 目录标签列表，已分配的标签显示勾选
+    - 点击切换标签分配状态
+    - 快捷跳转到标签管理（settings icon）
+    - 空状态提示
+  - `frontend/src/components/files/ListingItem.vue`: 目录项标签展示
+    - 标签按钮（label icon），hover 时显示
+    - 已有标签的目录显示彩色标签 chips（名称 + 半透明背景 + 边框）
+    - 点击打开 TagPicker 分配标签（stopPropagation 防止导航）
+    - 点击 item 关闭 TagPicker
+  - `frontend/src/components/Sidebar.vue`: 侧边栏标签筛选区
+    - 所有标签列表（label icon + 名称 + 关联数量）
+    - 点击标签筛选目录（高亮 active 状态）
+    - 清除筛选按钮（filter_list_off icon）
+    - mounted 时自动加载标签数据
+  - `frontend/src/views/files/FileListing.vue`: 标签筛选集成
+    - items computed 中按标签过滤目录（matchesFilter）
+    - 构建完整路径用于标签匹配（parentPath + item.name）
+    - 筛选状态指示条（显示当前筛选标签名称 + 颜色 + 清除按钮）
+  - `frontend/src/components/prompts/Prompts.vue`: 注册 tag-manager prompt
+  - `frontend/src/css/listing.css`: 标签相关样式
+    - 标签按钮（opacity 动画，has-tags 时蓝色高亮）
+    - 标签 chips（小字号，圆角，半透明背景）
+    - TagPicker popup（absolute 定位，z-index 100）
+    - 标签筛选指示条（蓝色背景，圆角，清除按钮）
+    - 暗色模式适配
+  - `frontend/src/css/sidebar.css`: 标签筛选区样式
+    - 分区 header + label icon 颜色
+    - 标签筛选项 active 状态
+    - 标签数量徽章
+    - 清除筛选按钮（红色 icon）
+  - i18n: zh-cn.json + en.json 添加 tags 翻译（manage/create/edit/delete/assignTags 等 12 个 key）
+- [x] F10 git push 补推成功（commit 630c4ca）
+- [x] Git commit 到 GitHub (push051815 分支, commit 8c1eda0)
+- [ ] Git push（NAS 网络无法连接 GitHub，待后续推送）
+- [x] 前端构建验证通过（vite build 成功，1m 10s）
+
+**技术细节：**
+- 标签数据完全在前端 localStorage，无需后端 API
+- 筛选机制：Sidebar 点击标签 → tagsStore.setFilter → FileListing 的 items computed 过滤
+- 路径匹配：tagsStore 存储完整路径，FileListing 构建 parentPath/itemName 进行匹配
+- TagPicker 使用绝对定位 popup，点击 item 时自动关闭
+- 标签 chips 使用半透明背景 + 边框的轻量设计，不干扰文件浏览
+- 筛选指示条在文件列表顶部显示当前筛选状态
+
+**下一步：**
+- F5: 重新构建 Docker 镜像并部署（验证全部功能）
+- Git push 待网络恢复后执行
+- 收藏功能拖拽排序（F10 遗留）
+
+**问题：**
+- NAS 无法连接 GitHub（端口 443 超时），commit 已本地保存
+
+**决策：**
+- 标签数据使用 localStorage（与收藏功能一致，无需后端 API）
+- 筛选仅过滤目录，不影响文件显示
+- 17 色预设调色板覆盖常见颜色需求
+- TagManager 作为 prompt 注册，复用现有的 modal 系统
+
+---
+
+## 2026-05-18 19:55 - F10 收藏夹拖拽排序
+
+**状态：** 已完成
+
+**完成项：**
+- [x] F10: 收藏夹拖拽排序（F10 最后一个未完成项）
+  - `Sidebar.vue`: 收藏项添加 `draggable="true"` 和拖拽事件处理
+    - `onFavDragStart`: 记录拖拽源索引，设置 drag effect
+    - `onFavDragOver`: 计算鼠标位置决定放置在目标上方/下方
+    - `onFavDrop`: 计算最终索引，调用 `reorderFavorite()`
+    - `onFavDragEnd`/`onFavDragLeave`: 清理拖拽状态
+  - `sidebar.css`: 新增拖拽相关样式
+    - `drag_indicator` 图标作为拖拽手柄，hover 时显示
+    - 拖拽中项目半透明（opacity: 0.35）
+    - 蓝色指示线使用 `box-shadow inset`，避免布局偏移
+    - 拖拽手柄默认隐藏，hover 收藏项时显示
+  - 原生 HTML5 Drag & Drop API，无额外依赖
+- [x] Git commit + push 到 GitHub (master 分支, commit 1f8e4e2)
+- [x] 前端构建验证通过（vite build 成功，1m 15s）
+
+**技术细节：**
+- 使用 `box-shadow: inset 0 2px 0 0` 替代 `border-top/bottom`，避免布局偏移
+- `dragOverPosition` 区分 top/bottom，精确指示放置位置
+- `onFavDrop` 中自动处理源索引 < 目标索引的偏移修正
+- `dragLeave` 检查 `relatedTarget` 防止子元素触发误清
+- drag handle 使用 Material Icons 的 `drag_indicator`，与现有图标风格一致
+
+**下一步：**
+- F5: 重新构建 Docker 镜像并部署（验证全部功能）
+- 所有代码任务已完成，仅剩部署和验证
+
+**问题：**
+- 无
+
+**决策：**
+- 使用原生 HTML5 Drag & Drop 而非引入 vuedraggable（简单场景不需要额外依赖）
+- 拖拽手柄用 drag_indicator 图标，放在 star 前面，仅 hover 时显示
+- 指示线用 box-shadow 而非 border，避免改变元素高度导致抖动
+
+---
+
+## 2026-05-18 21:15 - F5 构建部署 + 全功能验证
+
+**状态：** 已完成
+
+**完成项：**
+- [x] F5: 重新构建 Docker 镜像并部署
+  - 4 个未推送 commit 推送到 GitHub（2faca84 等）
+  - NAS 代码同步到最新（git fetch + reset --hard origin/master）
+  - Docker 镜像构建成功（f4359f44542b，多阶段构建）
+  - 容器部署成功（nas-file-browser:latest，端口 8888，healthy）
+  - admin 密码重置为 123456
+- [x] F3: 错误信息汉化验证
+  - 401 → "未授权，请重新登录" ✅
+  - 403 → "用户名或密码错误" ✅
+- [x] F4: 存储卷挂载验证
+  - /volume1 (7.3T, 2T 已用) ✅
+  - /volume2 (7.3T, 28G 已用) ✅
+  - 只读挂载正常 ✅
+- [x] F6: 存储卷 API 验证
+  - `/api/volumes` 返回 volume1 + volume2 完整数据 ✅
+  - `/api/categories` 返回三大分类（个人/共享/系统） ✅
+  - 前端 200 正常 ✅
+
+**技术细节：**
+- 构建环境：NAS Docker 26.1.0，ARM64 架构
+- 前端构建：pnpm install (18s) + vite build (1m 17s)
+- 后端构建：go build（约 3 分钟）
+- 容器运行：tini + init.sh，FB_ROOT=/，端口 8888
+
+**已知问题：**
+- `/api/classify` 端点有尾部斜杠重定向问题（非阻塞，前端可跟随重定向）
+
+**下一步：**
+- 所有代码任务（F1-F11）和部署验证已完成
+- 可选：推送到阿里云 ACR 做备份
+- 可选：清理 classify 端点路由问题

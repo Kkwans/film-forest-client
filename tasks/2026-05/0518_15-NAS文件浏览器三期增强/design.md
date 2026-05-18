@@ -360,114 +360,281 @@ export function handleApiError(error: any) {
 
 ## 6. 目录收藏功能设计
 
-### 6.1 数据结构
+### 6.1 数据模型（后端数据库）
 
-```typescript
-// types/favorites.ts
-interface Favorite {
-  id: string
-  path: string
-  name: string
-  addedAt: number
-  order: number
+```go
+// users/user.go - 扩展 User 结构体
+type Favorite struct {
+    ID        uint   `storm:"id,increment" json:"id"
+    UserID    uint   `storm:"index" json:"userId"
+    Path      string `storm:"unique" json:"path"
+    Name      string `json:"name"
+    Order     int    `json:"order"
+    CreatedAt int64  `json:"createdAt"
 }
 ```
 
-### 6.2 存储方案
+### 6.2 存储方案（后端数据库 - BoltDB）
+
+```go
+// storage/favorites.go
+type FavoriteStore interface {
+    Get(userID uint) ([]*Favorite, error)
+    GetByID(userID uint, favoriteID uint) (*Favorite, error)
+    GetByPath(userID uint, path string) (*Favorite, error)
+    Save(userID uint, favorite *Favorite) error
+    Delete(userID uint, favoriteID uint) error
+    DeleteByPath(userID uint, path string) error
+    Reorder(userID uint, favorites []*Favorite) error
+}
+
+// 实现：使用 BoltDB 存储，与用户账号关联
+type boltFavoriteStore struct {
+    db *storm.DB
+}
+
+func (s *boltFavoriteStore) Get(userID uint) ([]*Favorite, error) {
+    var favorites []*Favorite
+    err := s.db.Find("UserID", userID, &favorites)
+    if err != nil {
+        return nil, err
+    }
+    // 按 Order 排序
+    sort.Slice(favorites, func(i, j int) bool {
+        return favorites[i].Order < favorites[j].Order
+    })
+    return favorites, nil
+}
+
+func (s *boltFavoriteStore) Save(userID uint, favorite *Favorite) error {
+    favorite.UserID = userID
+    if favorite.CreatedAt == 0 {
+        favorite.CreatedAt = time.Now().Unix()
+    }
+    return s.db.Save(favorite)
+}
+
+func (s *boltFavoriteStore) Delete(userID uint, favoriteID uint) error {
+    return s.db.DeleteStruct(&Favorite{ID: favoriteID, UserID: userID})
+}
+```
+
+### 6.3 API 接口
+
+```
+GET    /api/favorites          # 获取当前用户的所有收藏
+POST   /api/favorites          # 添加收藏（path, name）
+DELETE /api/favorites/{id}     # 删除收藏
+PUT    /api/favorites/reorder  # 重新排序（传入有序的 ID 列表）
+```
+
+### 6.4 前端实现
 
 ```typescript
 // stores/favorites.ts
 export const useFavoritesStore = defineStore('favorites', () => {
   const favorites = ref<Favorite[]>([])
+  const loading = ref(false)
   
-  // 从 localStorage 加载
-  function loadFavorites() {
-    const saved = localStorage.getItem('favorites')
-    if (saved) {
-      favorites.value = JSON.parse(saved)
+  // 从后端 API 加载（登录后自动调用）
+  async function loadFavorites() {
+    loading.value = true
+    try {
+      const res = await fetchURL('/api/favorites')
+      favorites.value = await res.json()
+    } finally {
+      loading.value = false
     }
   }
   
-  // 保存到 localStorage
-  function saveFavorites() {
-    localStorage.setItem('favorites', JSON.stringify(favorites.value))
-  }
-  
-  // 添加收藏
-  function addFavorite(path: string, name: string) {
-    favorites.value.push({
-      id: Date.now().toString(),
-      path,
-      name,
-      addedAt: Date.now(),
-      order: favorites.value.length
+  // 添加收藏（调用后端 API，数据持久化到数据库）
+  async function addFavorite(path: string, name: string) {
+    const res = await fetchURL('/api/favorites', {
+      method: 'POST',
+      body: JSON.stringify({ path, name })
     })
-    saveFavorites()
+    const newFavorite = await res.json()
+    favorites.value.push(newFavorite)
   }
   
-  // 移除收藏
-  function removeFavorite(id: string) {
+  // 删除收藏（调用后端 API，从数据库删除）
+  async function removeFavorite(id: number) {
+    await fetchURL(`/api/favorites/${id}`, { method: 'DELETE' })
     favorites.value = favorites.value.filter(f => f.id !== id)
-    saveFavorites()
   }
   
-  return { favorites, loadFavorites, addFavorite, removeFavorite }
+  // 重新排序（调用后端 API，更新数据库）
+  async function reorderFavorites(orderedIds: number[]) {
+    await fetchURL('/api/favorites/reorder', {
+      method: 'PUT',
+      body: JSON.stringify({ order: orderedIds })
+    })
+    // 本地更新排序
+    const map = new Map(favorites.value.map(f => [f.id, f]))
+    favorites.value = orderedIds.map(id => map.get(id)!).filter(Boolean)
+  }
+  
+  return { favorites, loading, loadFavorites, addFavorite, removeFavorite, reorderFavorites }
 })
 ```
 
+### 6.5 与账号关联
+
+- 收藏数据存储在后端 BoltDB 数据库中
+- 每条收藏记录关联 UserID
+- 用户登录后自动加载其收藏数据
+- 换浏览器、换设备，只要用同一账号登录，收藏数据都在
+
 ## 7. 目录标签功能设计
 
-### 7.1 数据结构
+### 7.1 数据模型（后端数据库）
 
-```typescript
-// types/tags.ts
-interface Tag {
-  id: string
-  name: string
-  color: string
-  paths: string[]
+```go
+// users/user.go - 扩展 User 结构体
+type Tag struct {
+    ID        uint     `storm:"id,increment" json:"id"
+    UserID    uint     `storm:"index" json:"userId"
+    Name      string   `json:"name"
+    Color     string   `json:"color"
+    Paths     []string `json:"paths"`  // 关联的路径列表
+    CreatedAt int64    `json:"createdAt"
 }
 ```
 
-### 7.2 存储方案
+### 7.2 存储方案（后端数据库 - BoltDB）
+
+```go
+// storage/tags.go
+type TagStore interface {
+    Get(userID uint) ([]*Tag, error)
+    GetByID(userID uint, tagID uint) (*Tag, error)
+    GetByPath(userID uint, path string) ([]*Tag, error)
+    Save(userID uint, tag *Tag) error
+    Delete(userID uint, tagID uint) error
+    AddPath(userID uint, tagID uint, path string) error
+    RemovePath(userID uint, tagID uint, path string) error
+}
+
+// 实现：使用 BoltDB 存储，与用户账号关联
+type boltTagStore struct {
+    db *storm.DB
+}
+
+func (s *boltTagStore) Get(userID uint) ([]*Tag, error) {
+    var tags []*Tag
+    err := s.db.Find("UserID", userID, &tags)
+    return tags, err
+}
+
+func (s *boltTagStore) Save(userID uint, tag *Tag) error {
+    tag.UserID = userID
+    if tag.CreatedAt == 0 {
+        tag.CreatedAt = time.Now().Unix()
+    }
+    return s.db.Save(tag)
+}
+
+func (s *boltTagStore) GetByPath(userID uint, path string) ([]*Tag, error) {
+    var allTags []*Tag
+    err := s.db.Find("UserID", userID, &allTags)
+    if err != nil {
+        return nil, err
+    }
+    // 过滤出包含该路径的标签
+    var result []*Tag
+    for _, tag := range allTags {
+        for _, p := range tag.Paths {
+            if p == path {
+                result = append(result, tag)
+                break
+            }
+        }
+    }
+    return result, nil
+}
+```
+
+### 7.3 API 接口
+
+```
+GET    /api/tags              # 获取当前用户的所有标签
+POST   /api/tags              # 创建标签（name, color）
+PUT    /api/tags/{id}         # 更新标签（name, color）
+DELETE /api/tags/{id}         # 删除标签
+POST   /api/tags/{id}/paths   # 给标签添加路径
+DELETE /api/tags/{id}/paths   # 从标签移除路径
+GET    /api/tags/path/{path}  # 获取指定路径的所有标签
+```
+
+### 7.4 前端实现
 
 ```typescript
 // stores/tags.ts
 export const useTagsStore = defineStore('tags', () => {
   const tags = ref<Tag[]>([])
+  const loading = ref(false)
   
-  function loadTags() {
-    const saved = localStorage.getItem('tags')
-    if (saved) {
-      tags.value = JSON.parse(saved)
+  // 从后端 API 加载（登录后自动调用）
+  async function loadTags() {
+    loading.value = true
+    try {
+      const res = await fetchURL('/api/tags')
+      tags.value = await res.json()
+    } finally {
+      loading.value = false
     }
   }
   
-  function saveTags() {
-    localStorage.setItem('tags', JSON.stringify(tags.value))
-  }
-  
-  function createTag(name: string, color: string) {
-    tags.value.push({
-      id: Date.now().toString(),
-      name,
-      color,
-      paths: []
+  // 创建标签（调用后端 API，数据持久化到数据库）
+  async function createTag(name: string, color: string) {
+    const res = await fetchURL('/api/tags', {
+      method: 'POST',
+      body: JSON.stringify({ name, color })
     })
-    saveTags()
+    const newTag = await res.json()
+    tags.value.push(newTag)
   }
   
-  function addPathToTag(tagId: string, path: string) {
+  // 删除标签（调用后端 API，从数据库删除）
+  async function deleteTag(id: number) {
+    await fetchURL(`/api/tags/${id}`, { method: 'DELETE' })
+    tags.value = tags.value.filter(t => t.id !== id)
+  }
+  
+  // 给标签添加路径（调用后端 API，更新数据库）
+  async function addPathToTag(tagId: number, path: string) {
+    await fetchURL(`/api/tags/${tagId}/paths`, {
+      method: 'POST',
+      body: JSON.stringify({ path })
+    })
     const tag = tags.value.find(t => t.id === tagId)
     if (tag && !tag.paths.includes(path)) {
       tag.paths.push(path)
-      saveTags()
     }
   }
   
-  return { tags, loadTags, createTag, addPathToTag }
+  // 从标签移除路径（调用后端 API，更新数据库）
+  async function removePathFromTag(tagId: number, path: string) {
+    await fetchURL(`/api/tags/${tagId}/paths`, {
+      method: 'DELETE',
+      body: JSON.stringify({ path })
+    })
+    const tag = tags.value.find(t => t.id === tagId)
+    if (tag) {
+      tag.paths = tag.paths.filter(p => p !== path)
+    }
+  }
+  
+  return { tags, loading, loadTags, createTag, deleteTag, addPathToTag, removePathFromTag }
 })
 ```
+
+### 7.5 与账号关联
+
+- 标签数据存储在后端 BoltDB 数据库中
+- 每条标签记录关联 UserID
+- 用户登录后自动加载其标签数据
+- 换浏览器、换设备，只要用同一账号登录，标签数据都在
 
 ## 8. 实施计划
 
