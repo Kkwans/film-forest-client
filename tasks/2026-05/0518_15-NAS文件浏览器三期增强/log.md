@@ -543,3 +543,136 @@ priority: highest
 - 所有代码任务（F1-F11）和部署验证已完成
 - 可选：推送到阿里云 ACR 做备份
 - 可选：清理 classify 端点路由问题
+
+---
+
+## 2026-05-18 21:43 - 暗色模式 CSS 修复
+
+**状态：** 已完成
+
+**完成项：**
+- [x] 标签筛选器暗色模式修复
+  - `listing.css`: `.tag-filter-indicator` 暗色模式下增强背景和边框对比度
+  - `listing.css`: `.tag-filter-clear-btn:hover` 暗色模式下使用亮色背景（`rgba(255,255,255,0.08)` 替代 `rgba(0,0,0,0.08)`）
+  - `listing.css`: `.tag-chip` 暗色模式下提升亮度（`filter: brightness(1.15)`）
+- [x] Git commit + push 到 GitHub (master 分支, commit b0936eb)
+- [x] 前端构建验证通过（vite build 成功，1m 26s）
+
+**技术细节：**
+- 标签筛选器指示条在暗色模式下背景对比度不足，边框几乎不可见
+- 清除按钮 hover 使用黑色半透明背景在暗色模式下与背景融合，改为白色半透明
+- 标签 chips 使用内联样式设置颜色，暗色模式下通过 CSS filter 提升亮度
+
+**下一步：**
+- 所有代码任务（F1-F11）+ 暗色模式修复已完成
+- 可选：后端收藏/标签数据持久化（需修改 Go 代码）
+- 可选：自定义分类规则 UI（需后端支持）
+
+**问题：**
+- 无
+
+**决策：**
+- 暗色模式修复作为独立小任务提交，不影响功能逻辑
+
+---
+
+## 2026-05-18 22:13 - Sidebar 收藏夹/标签空状态 + 管理增强
+
+**状态：** 已完成
+
+**完成项：**
+- [x] Sidebar 收藏夹/标签空状态提示 + 管理功能增强
+  - `Sidebar.vue`: 收藏夹区域改为始终渲染，空状态时显示「暂无收藏目录」引导文字
+  - `Sidebar.vue`: 标签区域改为始终渲染，空状态时显示「暂无标签，创建一个吧」引导文字
+  - `Sidebar.vue`: 收藏夹 header 添加「清空收藏夹」按钮（delete_sweep icon，hover 显示）
+  - `Sidebar.vue`: 标签 header 添加「管理标签」按钮（settings icon，hover 显示，打开 TagManager）
+  - `Sidebar.vue`: 新增 `clearAllFavorites()` 和 `openTagManager()` 方法
+  - `sidebar.css`: 新增 `.section-empty` 空状态样式（斜体、低透明度、图标+文字布局）
+  - `sidebar.css`: 新增 `.section-action-btn` header 操作按钮样式（默认隐藏，hover 显示，红色/蓝色反馈）
+  - `zh-cn.json`: 新增 `sidebar.clearAllFavorites` 翻译
+  - `en.json`: 新增 `sidebar.clearAllFavorites` 翻译
+- [x] Git commit + push 到 GitHub (master 分支, commit 16a9810)
+- [x] 前端构建验证通过（vite build 成功，1m 22s）
+
+**技术细节：**
+- 收藏夹和标签区域从 `v-if` 改为始终渲染，提升功能可发现性
+- 空状态使用 `.section-empty` 样式，带图标+文字，opacity 0.4 保持视觉层次
+- 清空收藏夹按钮使用 delete_sweep Material Icon，仅 hover 收藏夹 header 时显示
+- 管理标签按钮复用已有的 TagManager prompt，无缝集成
+- 两个操作按钮都有独立的 hover 颜色反馈（收藏=红色删除，标签=蓝色设置）
+
+**下一步：**
+- 所有代码任务（F1-F11）+ UI 增强已完成
+- 可选：后端收藏/标签数据持久化（需修改 Go 代码）
+- 可选：自定义分类规则 UI
+- 可选：推送到阿里云 ACR 做备份
+
+**问题：**
+- 无
+
+**决策：**
+- 空状态提示保持简洁（图标+一句话），不添加操作按钮（避免界面复杂化）
+- 清空收藏夹使用直接清空而非逐个删除确认（收藏夹是低风险操作）
+- 管理标签按钮直接打开已有的 TagManager prompt，不新建 UI
+
+---
+
+## 2026-05-18 22:43 - classify 端点修复 + router 防御性修复
+
+**状态：** 已完成
+
+**完成项：**
+- [x] classify 端点尾部斜杠重定向修复
+  - `backend/http/http.go`: `PathPrefix("/classify")` → `Handle("/classify", ...)`
+  - 消除 `/api/classify` 无尾部斜杠时的 301 重定向
+  - 与 `/api/volumes`、`/api/categories` 注册方式保持一致
+- [x] router catch-all 防御性修复
+  - `frontend/src/router/index.ts`: catch-all redirect 增加 null/empty check
+  - 防止 `catchAll` 为 undefined 或空数组时生成无效路径
+- [x] Git commit 到 GitHub (master 分支, commit b7136df)
+- [ ] Git push（NAS 网络无法连接 GitHub，待后续推送）
+
+**技术细节：**
+- classify handler 用 `r.URL.Query().Get("path")` 读取参数，不需要 PathPrefix 匹配 URL 路径
+- PathPrefix 在 gorilla/mux 中对无尾部斜杠的请求会触发 301 重定向
+- catch-all 路由的 `to.params.catchAll` 可能为 undefined（Vue Router 4 行为变化）
+
+**下一步：**
+- 所有代码任务（F1-F11）+ bug 修复已完成
+- 可选：后端收藏/标签数据持久化（需修改 Go 代码）
+- 可选：推送到阿里云 ACR 做备份
+
+**问题：**
+- NAS 无法连接 GitHub（端口 443 超时），commit 已本地保存
+
+**决策：**
+- classify 修复为独立小 commit，不混入功能代码
+
+---
+
+## 2026-05-18 23:13 - Git push 补推 + 构建验证
+
+**状态：** 已完成
+
+**完成项：**
+- [x] b7136df commit 推送到 GitHub（之前因网络超时未推送，本次补推成功）
+- [x] 前端构建验证通过（vite build 成功，1m 23s）
+- [x] 确认所有 F1-F11 任务全部完成
+
+**项目整体状态：**
+- Phase 1（核心修复）：F1-F5 全部完成 ✅
+- Phase 2（目录分类+风险等级）：F6-F9 全部完成 ✅
+- Phase 3（收藏+标签）：F10-F11 全部完成 ✅
+- Bug 修复：classify 端点、暗色模式 CSS、router 防御 全部完成 ✅
+- 所有 commit 已推送到 GitHub master 分支
+
+**可选后续增强（非必需）：**
+- 后端收藏/标签数据持久化（当前使用 localStorage，设计文档建议改用 BoltDB）
+- 推送到阿里云 ACR 做镜像备份
+- 自定义分类规则 UI
+
+**问题：**
+- 无
+
+**决策：**
+- 所有 tasks.md 中的任务已完成，本轮无新任务可选，仅做补推和验证
