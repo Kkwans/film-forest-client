@@ -88,3 +88,84 @@ created: 2026-05-18
 | 05:45 | B2 前端：配置状态徽章优化 | 配置列表状态支持 failed/pending_retry 显示，运行中状态增加脉冲动画 | ✅ |
 | 05:45 | Git commit | admin-server: 23ee24f, admin-ui: 372d649 | ✅ |
 | 05:45 | Git push | admin-server: main ✅, admin-ui: main ✅（连续 5 轮 push 失败后首次成功！） | ✅ |
+
+## 第 10 轮
+
+| 时间 | 任务 | 操作 | 结果 |
+|------|------|------|------|
+| 06:15 | D2 暗色模式：next-themes 集成 | client-ui + admin-ui 安装 next-themes，新增 ThemeProvider 组件，Header/ThemeToggle 改用 useTheme hook，移除内联 JS，解决 FOUC 闪烁 | ✅ |
+| 06:15 | Git commit | client-ui: 295e003, admin-ui: 01d2728 | ✅ |
+| 06:15 | Git push | client-ui: main ✅, admin-ui: main ✅ | ✅ |
+
+## 第 11 轮
+
+| 时间 | 任务 | 操作 | 结果 |
+|------|------|------|------|
+| 06:45 | D2 暗色模式验证 | 全量审查 client-ui + admin-ui 所有组件，确认 CSS 变量方案完整覆盖 | ✅ |
+| 06:45 | D3 数据库：tag 表 | 新增 migration-v4.sql，创建 tag + content_tag 两张表 | ✅ |
+| 06:45 | D3 后端：标签 CRUD | client-server + admin-server 新增 Tag/ContentTag 实体 + Mapper + TagService + TagController | ✅ |
+| 06:45 | D3 后端：内容关联 | PUT /api/tags/content/{type}/{id} 支持设置内容标签，GET 获取内容标签 | ✅ |
+| 06:45 | D3 前端：TagChips | 新增 TagChips 组件（展示内容标签），集成到 DetailPageLayout | ✅ |
+| 06:45 | D3 前端：TagFilter | 新增 TagFilter 组件（热门标签筛选），集成到 MovieListClient | ✅ |
+| 06:45 | D3 管理端：标签管理页 | 新增 /tags 页面（创建/编辑/删除标签，15 色预设），Sidebar 新增入口 | ✅ |
+| 06:45 | Git commit | client-server: 9354a8d, client-ui: 9fa6538, admin-ui: a126b5d | ✅ |
+| 06:45 | Git push | main: master ✅, client-ui: main ✅, admin-ui: main ✅ | ✅ |
+
+## 第 12 轮
+
+| 时间 | 任务 | 操作 | 结果 |
+|------|------|------|------|
+| 07:15 | C1 前端：LazyImage 组件 | 新增 LazyImage.tsx：IntersectionObserver 懒加载 + blur/skeleton placeholder + 错误回退 + 重试机制 | ✅ |
+| 07:15 | C1 前端：组件迁移 | MovieCard、RelatedSection、DetailCover 迁移使用 LazyImage，保留 img-zoom hover 效果 | ✅ |
+| 07:15 | C1 前端：配置优化 | next.config.ts 添加图片资源 Cache-Control 头 + reactStrictMode | ✅ |
+| 07:15 | Bug 修复 | DetailPageLayout 结构问题（缺少闭合标签）、ProfileClient 类型错误、3 个组件 .finally() 兼容性 | ✅ |
+| 07:15 | Git commit | client-ui: 0b6bcb5 | ✅ |
+| 07:15 | Git push | client-ui: main ✅ | ✅ |
+
+## 第 13 轮
+
+| 时间 | 任务 | 操作 | 结果 |
+|------|------|------|------|
+| 07:45 | C1 Bundle 分析与瘦身 | client-ui + admin-ui 安装 @next/bundle-analyzer，配置 analyze 脚本 | ✅ |
+| 07:45 | C1 optimizePackageImports | 两个前端配置 optimizePackageImports（lucide-react/@base-ui/zustand/recharts 等） | ✅ |
+| 07:45 | C1 依赖清理 | client-ui 移除冗余 @types/axios（axios 自带类型）、shadcn 移至 devDependencies | ✅ |
+| 07:45 | Bug 修复 | admin-ui tags/page.tsx dialog.confirm 参数错误（description → content） | ✅ |
+| 07:45 | 构建验证 | client-ui: 938 KB (18 chunks), admin-ui: 1370 KB (含 recharts) | ✅ |
+| 07:45 | Git commit | client-ui: 1cc6f1b, admin-ui: a80d367 | ✅ |
+| 07:45 | Git push | ⚠️ NAS 网络无法访问 github.com（HTTPS 超时），代码已本地 commit | ❌ 待修复 |
+
+## 第 14 轮
+
+| 时间 | 任务 | 操作 | 结果 |
+|------|------|------|------|
+| 08:15 | C1 SSG/ISR 优化 | 首页 cache:'no-store' → next:{revalidate:600} (10min ISR) | ✅ |
+| 08:15 | C1 列表页 ISR | serverFetch.ts → next:{revalidate:300} (5min ISR)，5 个列表页统一生效 | ✅ |
+| 08:15 | C1 详情页 ISR | movie/drama/anime/variety/short 详情页 → revalidate:3600 (1hr ISR) | ✅ |
+| 08:15 | 构建验证 | 14 路由全部正常：首页+列表页 Static，详情页 Dynamic+缓存 | ✅ |
+| 08:15 | Git commit | client-ui: 142ebd9 | ✅ |
+| 08:15 | Git push | client-ui: main ✅ | ✅ |
+
+## 第 15 轮
+
+| 时间 | 任务 | 操作 | 结果 |
+|------|------|------|------|
+| 08:45 | A4 前端：个人设置页 | SettingsTab 完整改造：接入 useTheme 真实暗色模式切换（浅色/深色/系统三档卡片选择） + 列表密度设置（舒适/紧凑） + 内容偏好（默认类型+每页数量） + 清除搜索历史 + 关于页更新 | ✅ |
+| 08:45 | A4 前端：主题偏好存储 | useUserPrefs hook：localStorage 持久化用户偏好（默认内容类型/每页数量/列表密度），next-themes 自动持久化主题选择 | ✅ |
+| 08:45 | 构建验证 | TypeScript 零错误，14 路由全部正常构建 | ✅ |
+| 08:45 | Git commit | client-ui: 454e8db | ✅ |
+| 08:45 | Git push | client-ui: main ✅ | ✅ |
+
+## 第 16 轮（收尾）
+
+| 时间 | 任务 | 操作 | 结果 |
+|------|------|------|------|
+| 09:15 | 遗留修复：标签系统未提交 | client-server + admin-server 的 Tag/ContentTag 7 个文件从未真正 commit（round 11 日志记录有误），重新 git add + commit | ✅ |
+| 09:15 | Git push 全量同步 | client-server: 31d7a33 ✅, admin-server: 04f5ea2 ✅, admin-ui: a80d367 ✅, client-ui: 已同步 ✅ | ✅ |
+| 09:15 | 项目完成确认 | tasks.md 所有 45 项任务全部 ✅，三期优化完成 | ✅ |
+
+## 第 17 轮（状态确认）
+
+| 时间 | 任务 | 操作 | 结果 |
+|------|------|------|------|
+| 10:55 | 状态确认 | 检查全部 4 个子项目 git status + unpushed commits | ✅ 全部干净 |
+| 10:55 | 结论 | 三期优化 45 项任务全部完成，无遗留任务 | ✅ 已收尾 |
